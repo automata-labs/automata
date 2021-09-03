@@ -10,7 +10,7 @@ import { expandTo18Decimals, getCurrentTimestamp, MAX_UINT256 } from './shared/u
 const { createFixtureLoader } = waffle;
 const { BigNumber } = ethers;
 
-const spec = describe.only('Sequencer', async () => {
+describe('Sequencer', async () => {
   let loadFixture;  
   let wallet;
   let other1;
@@ -20,7 +20,7 @@ const spec = describe.only('Sequencer', async () => {
   let sequencerFactory: SequencerFactory;
   let sequencer: Sequencer;
 
-  const fixture = async ([wallet]) => {
+  const fixture = async () => {
     const ERC20CompLike = await ethers.getContractFactory('ERC20CompLike');
     const SequencerFactory = await ethers.getContractFactory('SequencerFactory');
     

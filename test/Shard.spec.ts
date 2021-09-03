@@ -8,7 +8,7 @@ const { createFixtureLoader } = waffle;
 
 use(solidity);
 
-const spec = describe.only('Shard', async () => {
+describe('Shard', async () => {
   let loadFixture;
 
   let wallet;
@@ -18,7 +18,7 @@ const spec = describe.only('Shard', async () => {
   let shardMock: ShardMock;
   let executable: Executable;
 
-  const mainFixture = async ([wallet]) => {
+  const fixture = async () => {
     const Shard = await ethers.getContractFactory('Shard');
     const ShardMock = await ethers.getContractFactory('ShardMock');
     const Executable = await ethers.getContractFactory('Executable');
@@ -36,7 +36,7 @@ const spec = describe.only('Shard', async () => {
   });
 
   beforeEach(async () => {
-    await loadFixture(mainFixture);
+    await loadFixture(fixture);
   });
 
   describe('#initialize', async () => {

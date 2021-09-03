@@ -7,7 +7,7 @@ import { SequencerFactory } from '../typechain/SequencerFactory.d.ts';
 
 const { createFixtureLoader } = waffle;
 
-const spec = describe.only('SequencerFactory', async () => {
+describe('SequencerFactory', async () => {
   let loadFixture;
   let wallet;
 
@@ -16,7 +16,7 @@ const spec = describe.only('SequencerFactory', async () => {
 
   let sequencerFactory: SequencerFactory;
 
-  const mainFixture = async ([wallet]) => {
+  const fixture = async () => {
     const ERC20 = await ethers.getContractFactory('ERC20');
     const SequencerFactory = await ethers.getContractFactory('SequencerFactory');
 
@@ -31,7 +31,7 @@ const spec = describe.only('SequencerFactory', async () => {
   });
 
   beforeEach(async () => {
-    await loadFixture(mainFixture);
+    await loadFixture(fixture);
   });
 
   describe('#create', async () => {
