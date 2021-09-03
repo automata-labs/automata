@@ -9,6 +9,7 @@ import "./libraries/math/Cast.sol";
 import "./libraries/math/Delta.sol";
 import "./libraries/utils/Multicall.sol";
 
+/// @title Kernel
 contract Kernel is IKernel, Access, Multicall {
     using Cast for uint128;
     using Delta for uint128;
