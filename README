@@ -1,0 +1,18 @@
+Kernel
+
+This repository contains the contracts for abstracting governor tokens
+into their repsective voting- and non-voting token primitives.
+
+The contracts are all replaceable except for the kernel contract that
+contains all of the states of the system. The protocol is token agnostic
+and can have multiple implementations of both voting tokens and
+-emulators. The kernel is thus upgradeable in tandem with governance
+model upgrades and built with this adaptability in mind. Additional
+desireable abstractions in the future are resolved by deploying
+complementing pair-wise splitting contracts.
+
+Business Source License 1.1
+
+License text copyright (c) 2017 MariaDB Corporation Ab, All Rights
+Reserved. "Business Source License" is a trademark of MariaDB
+Corporation Ab.

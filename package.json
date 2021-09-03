@@ -1,0 +1,32 @@
+{
+  "name": "kernel",
+  "version": "115792089237316195423570985008687907853269984665640564039457584007913129639936",
+  "scripts": {
+    "compile": "hardhat compile",
+    "lint": "solhint 'contracts/**/*.sol'"
+  },
+  "license": "BUSL-1.1",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "@typechain/ethers-v5": "^7.0.1",
+    "@typechain/hardhat": "^2.3.0",
+    "@types/chai": "^4.2.21",
+    "@types/mocha": "^9.0.0",
+    "@types/node": "^16.7.10",
+    "chai": "^4.3.4",
+    "dotenv": "^10.0.0",
+    "ethereum-waffle": "^3.4.0",
+    "ethers": "^5.4.6",
+    "hardhat": "^2.6.2",
+    "hardhat-gas-reporter": "^1.0.4",
+    "mocha": "^9.1.1",
+    "prettier": "^2.3.2",
+    "prettier-plugin-solidity": "^1.0.0-beta.17",
+    "solhint": "^3.3.6",
+    "solhint-plugin-prettier": "^0.0.5",
+    "ts-node": "^10.2.1",
+    "typechain": "^5.1.2",
+    "typescript": "^4.4.2"
+  }
+}
