@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "./interfaces/IKernel.sol";
+import "./interfaces/IKernelEvents.sol";
 
 import "./libraries/access/Access.sol";
 import "./libraries/data/State.sol";
@@ -10,7 +11,7 @@ import "./libraries/math/Delta.sol";
 import "./libraries/utils/Multicall.sol";
 
 /// @title Kernel
-contract Kernel is IKernel, Access, Multicall {
+contract Kernel is IKernel, IKernelEvents, Access, Multicall {
     using Cast for uint128;
     using Delta for uint128;
 
@@ -25,21 +26,28 @@ contract Kernel is IKernel, Access, Multicall {
     /// @inheritdoc IKernel
     function set(bytes32 key, State.Data memory state) external override auth {
         states[key] = state;
+        emit Set(msg.sender, key, state);
     }
 
     /// @inheritdoc IKernel
-    function update(bytes32 key, int128 deltaX, int128 deltaY) external override auth {
-        _delta(key, deltaX, deltaY);
+    function update(bytes32 key, int128 delx, int128 dely) external override auth {
+        if (delx != 0) states[key].x = states[key].x.addDelta(delx);
+        if (dely != 0) states[key].y = states[key].y.addDelta(dely);
+
+        emit Updated(msg.sender, key, delx, dely);
     }
 
     /// @inheritdoc IKernel
     function transfer(bytes32 from, bytes32 to, uint128 x, uint128 y) external override auth {
-        _delta(from, -x.i128(), -y.i128());
-        _delta(to, x.i128(), y.i128());
-    }
+        require(states[from].x >= x, "X");
+        require(states[from].y >= y, "Y");
+        unchecked {
+            states[from].x = states[from].x - x;
+            states[from].y = states[from].y - y;
+        }
+        states[to].x = states[to].x + x;
+        states[to].y = states[to].y + y;
 
-    function _delta(bytes32 key, int128 deltaX, int128 deltaY) internal {
-        if (deltaX != 0) states[key].x = states[key].x.addDelta(deltaX);
-        if (deltaY != 0) states[key].y = states[key].y.addDelta(deltaY);
+        emit Transferred(msg.sender, from, to, x, y);
     }
 }
