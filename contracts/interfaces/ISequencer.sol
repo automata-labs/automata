@@ -43,7 +43,7 @@ interface ISequencer {
     );
 
     /// @notice Deposit tokens into the sequencer's shards.
-    function sequence() external returns (uint256 amount);
+    function deposit() external returns (uint256 amount);
 
     /// @notice Withdraw tokens into the sequencer's shards.
     function withdraw(address to, uint256 amount) external returns (uint256 withdrawn);
