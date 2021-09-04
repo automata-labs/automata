@@ -15,7 +15,7 @@ interface IOperator {
     function sequencer() external view returns (ISequencer);
 
     /// @notice Set the sequencer.
-    /// @dev The sequencer is also the storage of all the governance tokens.
+    /// @dev The sequencer is manages the protocol owned tokens.
     function set(ISequencer sequencer_) external;
 
     /// @notice Deposit tokens to join the protocol.
