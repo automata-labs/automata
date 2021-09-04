@@ -1,7 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
-
-import "hardhat/console.sol";
 
 abstract contract Lock {
     bool public unlocked = true; // unlocked at creation
