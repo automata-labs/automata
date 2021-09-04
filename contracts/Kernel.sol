@@ -6,7 +6,6 @@ import "./interfaces/IKernelEvents.sol";
 
 import "./libraries/access/Access.sol";
 import "./libraries/data/State.sol";
-import "./libraries/math/Delta.sol";
 import "./libraries/utils/Multicall.sol";
 
 /// @title Kernel
@@ -27,8 +26,16 @@ contract Kernel is IKernel, IKernelEvents, Access, Multicall {
 
     /// @inheritdoc IKernel
     function update(bytes32 key, int128 delx, int128 dely) external override auth {
-        if (delx != 0) states[key].x = Delta.addDelta(states[key].x, delx);
-        if (dely != 0) states[key].y = Delta.addDelta(states[key].y, dely);
+        if (delx > 0) states[key].x += uint128(delx);
+        if (delx < 0) {
+            require(states[key].x >= uint128(-delx), "-");
+            unchecked { states[key].x -= uint128(-delx); }
+        }
+        if (dely > 0) states[key].y += uint128(dely);
+        if (dely < 0) {
+            require(states[key].y >= uint128(-dely), "-");
+            unchecked { states[key].y -= uint128(-dely); }
+        }
 
         emit Updated(msg.sender, key, delx, dely);
     }
