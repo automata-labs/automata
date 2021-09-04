@@ -6,15 +6,11 @@ import "./interfaces/IKernelEvents.sol";
 
 import "./libraries/access/Access.sol";
 import "./libraries/data/State.sol";
-import "./libraries/math/Cast.sol";
 import "./libraries/math/Delta.sol";
 import "./libraries/utils/Multicall.sol";
 
 /// @title Kernel
 contract Kernel is IKernel, IKernelEvents, Access, Multicall {
-    using Cast for uint128;
-    using Delta for uint128;
-
     /// @inheritdoc IKernel
     mapping(bytes32 => State.Data) public override states;
 
@@ -31,8 +27,8 @@ contract Kernel is IKernel, IKernelEvents, Access, Multicall {
 
     /// @inheritdoc IKernel
     function update(bytes32 key, int128 delx, int128 dely) external override auth {
-        if (delx != 0) states[key].x = states[key].x.addDelta(delx);
-        if (dely != 0) states[key].y = states[key].y.addDelta(dely);
+        if (delx != 0) states[key].x = Delta.addDelta(states[key].x, delx);
+        if (dely != 0) states[key].y = Delta.addDelta(states[key].y, dely);
 
         emit Updated(msg.sender, key, delx, dely);
     }
