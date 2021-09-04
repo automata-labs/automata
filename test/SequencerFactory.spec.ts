@@ -36,8 +36,8 @@ describe('SequencerFactory', async () => {
 
   describe('#create', async () => {
     it('should create', async () => {
-      let sequencerAddress;
-      let sequencer;
+      let sequencerAddress: string;
+      let sequencer: Sequencer;
 
       await sequencerFactory.create(token0.address);
       sequencerAddress = await sequencerFactory.compute(token0.address);
@@ -53,11 +53,6 @@ describe('SequencerFactory', async () => {
     });
     it('should revert when sequencer already deployed', async () => {
       await sequencerFactory.create(token0.address);
-      const sequencerAddress = await sequencerFactory.compute(token0.address);
-      const sequencer = (await ethers.getContractAt('Sequencer', sequencerAddress)) as Sequencer;
-      expect(await sequencer.underlying()).to.equal(token0.address);
-      expect(await sequencer.decimals()).to.equal(await token0.decimals());
-
       await expect(sequencerFactory.create(token0.address)).to.be.reverted;
     });
     it('should revert on non-contract address', async () => {

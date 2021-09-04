@@ -7,7 +7,7 @@ import "./interfaces/ISequencerEvents.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
-import "@yield-protocol/utils/contracts/token/IERC20Metadata.sol";
+import "@yield-protocol/utils-v2/contracts/token/IERC20Metadata.sol";
 
 import "./Shard.sol";
 import "./interfaces/ISequencerFactory.sol";
@@ -81,7 +81,7 @@ contract Sequencer is ISequencer, ISequencerEvents, Access {
     }
 
     /// @inheritdoc ISequencer
-    function sequence() external override auth returns (uint256 amount) {
+    function deposit() external override auth returns (uint256 amount) {
         amount = IERC20(underlying).balanceOf(address(this));
         if (amount == 0) {
             return 0;
@@ -179,6 +179,8 @@ contract Sequencer is ISequencer, ISequencerEvents, Access {
         address[] memory targets = new address[](1);
         bytes[] memory data = new bytes[](1);
 
+        // delegate to self after cloning shard.
+        // will fail if `underlying` is not a `CompLike` token.
         targets[0] = underlying;
         data[0] = abi.encodeWithSignature("delegate(address)", cloned);
 
