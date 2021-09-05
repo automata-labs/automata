@@ -26,6 +26,10 @@ interface IOperator {
     /// @dev Requires the account to send `x` and `y` values to the operator, and then calling `exit`.
     function exit(address to) external;
 
+    /// @notice Move internal values from one address to another.
+    /// @dev Can only move values inside of the current key space (i.e. w.r.t. `underlying`).
+    function move(address from, address to, uint128 x, uint128 y) external;
+
     /// @notice Helper transfer function.
     function pay(address token, address to, uint256 value) external;
 }

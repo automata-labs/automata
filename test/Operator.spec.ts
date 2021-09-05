@@ -1,5 +1,3 @@
-import { BigNumberish } from '@ethersproject/bignumber';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
@@ -8,6 +6,7 @@ import { ERC20CompLike, Kernel, Operator, Sequencer } from '../typechain';
 import { SequencerFactory } from '../typechain/OperatorFactory.d.ts';
 // @ts-ignore
 import { OperatorFactory } from '../typechain/OperatorFactory.d.ts';
+import { operations } from './shared/functions';
 import { expandTo18Decimals, getCurrentTimestamp, MAX_UINT256, ROOT } from './shared/utils';
 
 const { BigNumber } = ethers;
@@ -28,6 +27,9 @@ describe('Operator', async () => {
   let sequencer: Sequencer;
   let operator: Operator;
 
+  let join: Function;
+  let move: Function;
+
   const fixture = async () => {
     const ERC20CompLike = await ethers.getContractFactory('ERC20CompLike');
     const Kernel = await ethers.getContractFactory('Kernel');
@@ -44,6 +46,8 @@ describe('Operator', async () => {
 
     await operatorFactory.create(token.address);
     operator = (await ethers.getContractAt('Operator', await operatorFactory.compute(token.address))) as Operator;
+
+    ({ join, move } = await operations(token, kernel, operator));
   };
 
   const joinFixture = async () => {
@@ -109,14 +113,6 @@ describe('Operator', async () => {
       await loadFixture(joinFixture);
     });
 
-    const join = async (sender: SignerWithAddress, tox: string, toy: string, amount: BigNumberish) => {
-      await token.connect(sender).approve(operator.address, MAX_UINT256);
-      await operator.connect(sender).multicall([
-        operator.interface.encodeFunctionData('pay', [token.address, sequencer.address, amount]),
-        operator.interface.encodeFunctionData('join', [tox, toy]),
-      ]);
-    };
-
     it('should join', async () => {
       await join(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
 
@@ -124,8 +120,8 @@ describe('Operator', async () => {
       expect(await kernel.get(key)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
     });
     it('should join multiple times', async () => {
-      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
       await join(wallet, wallet.address, wallet.address, expandTo18Decimals(500));
+      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
 
       const key = ethers.utils.keccak256(abi.encode(['address', 'address'], [token.address, wallet.address]));
       expect(await kernel.get(key)).to.eql([expandTo18Decimals(510), expandTo18Decimals(510)]);
@@ -138,6 +134,9 @@ describe('Operator', async () => {
       expect(await kernel.get(key1)).to.eql([expandTo18Decimals(10), BigNumber.from(0)]);
       const key2 = ethers.utils.keccak256(abi.encode(['address', 'address'], [token.address, other2.address]));
       expect(await kernel.get(key2)).to.eql([BigNumber.from(0), expandTo18Decimals(10)]);
+    });
+    it('should join zero tokens', async () => {
+      await operator.join(wallet.address, wallet.address);
     });
     it.skip('should join dust', async () => {});
     it.skip('should join line', async () => {});
@@ -153,9 +152,6 @@ describe('Operator', async () => {
       expect(await kernel.get(from)).to.eql([expandTo18Decimals(175), expandTo18Decimals(125)]);
     });
     it.skip('should emit an event', async () => {});
-    it('should revert when joining zero tokens', async () => {
-      await expect(operator.join(wallet.address, wallet.address)).to.be.revertedWith('0');
-    });
     it.skip('should revert when joining on zero shards', async () => {});
     it.skip('should revert when governor is active', async () => {});
     it.skip('should revert when overflowing sequencer space', async () => {});
@@ -165,12 +161,6 @@ describe('Operator', async () => {
     beforeEach(async () => {
       await loadFixture(exitFixture);
     });
-
-    const move = async (from: string, to: string, x: BigNumberish, y: BigNumberish) => {
-      const key0 = ethers.utils.keccak256(abi.encode(['address', 'address'], [token.address, from]));
-      const key1 = ethers.utils.keccak256(abi.encode(['address', 'address'], [token.address, to]));
-      await kernel.transfer(key0, key1, x, y);
-    };
 
     it('should exit', async () => {
       const balanceBefore = await token.balanceOf(wallet.address);
