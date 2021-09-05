@@ -134,7 +134,7 @@ describe('Operator', async () => {
     });
     it.skip('should join dust', async () => {});
     it.skip('should join line', async () => {});
-    it('should join to non-symmetric state', async () => {
+    it('should join to non-symmetric slot', async () => {
       await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
       await move(wallet.address, other1.address, expandTo18Decimals(25), expandTo18Decimals(75));
       expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(75), expandTo18Decimals(25)]);
@@ -167,7 +167,7 @@ describe('Operator', async () => {
     it.skip('should exit to another account', async () => {});
     it.skip('should exit dust', async () => {});
     it.skip('should exit line', async () => {});
-    it.skip('should exit on non-symmetric state', async () => {});
+    it.skip('should exit on non-symmetric slot', async () => {});
     it.skip('should exit when governor is active', async () => {});
     it.skip('should emit an event', async () => {});
     it.skip('should revert when exiting zero tokens', async () => {});

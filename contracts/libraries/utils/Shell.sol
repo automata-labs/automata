@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "../data/State.sol";
+import "../data/Slot.sol";
 import "../../interfaces/IKernel.sol";
 
 library Shell {
-    function fetch(IKernel kernel, address underlying, address owner) internal view returns (State.Data memory) {
+    function fetch(IKernel kernel, address underlying, address owner) internal view returns (Slot.Data memory) {
         return kernel.get(keccak256(abi.encode(underlying, owner)));
     }
 

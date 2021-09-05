@@ -5,36 +5,36 @@ import "./interfaces/IKernel.sol";
 import "./interfaces/IKernelEvents.sol";
 
 import "./libraries/access/Access.sol";
-import "./libraries/data/State.sol";
+import "./libraries/data/Slot.sol";
 import "./libraries/utils/Multicall.sol";
 
 /// @title Kernel
 contract Kernel is IKernel, IKernelEvents, Access, Multicall {
     /// @inheritdoc IKernel
-    mapping(bytes32 => State.Data) public override states;
+    mapping(bytes32 => Slot.Data) public override slots;
 
     /// @inheritdoc IKernel
-    function get(bytes32 key) external view override returns (State.Data memory) {
-        return states[key];
+    function get(bytes32 key) external view override returns (Slot.Data memory) {
+        return slots[key];
     }
 
     /// @inheritdoc IKernel
-    function set(bytes32 key, State.Data memory state) external override auth {
-        states[key] = state;
-        emit Set(msg.sender, key, state);
+    function set(bytes32 key, Slot.Data memory slot) external override auth {
+        slots[key] = slot;
+        emit Set(msg.sender, key, slot);
     }
 
     /// @inheritdoc IKernel
     function update(bytes32 key, int128 delx, int128 dely) external override auth {
-        if (delx > 0) states[key].x += uint128(delx);
+        if (delx > 0) slots[key].x += uint128(delx);
         if (delx < 0) {
-            require(states[key].x >= uint128(-delx), "-");
-            unchecked { states[key].x -= uint128(-delx); }
+            require(slots[key].x >= uint128(-delx), "-");
+            unchecked { slots[key].x -= uint128(-delx); }
         }
-        if (dely > 0) states[key].y += uint128(dely);
+        if (dely > 0) slots[key].y += uint128(dely);
         if (dely < 0) {
-            require(states[key].y >= uint128(-dely), "-");
-            unchecked { states[key].y -= uint128(-dely); }
+            require(slots[key].y >= uint128(-dely), "-");
+            unchecked { slots[key].y -= uint128(-dely); }
         }
 
         emit Updated(msg.sender, key, delx, dely);
@@ -42,14 +42,14 @@ contract Kernel is IKernel, IKernelEvents, Access, Multicall {
 
     /// @inheritdoc IKernel
     function transfer(bytes32 from, bytes32 to, uint128 x, uint128 y) external override auth {
-        require(states[from].x >= x, "X");
-        require(states[from].y >= y, "Y");
+        require(slots[from].x >= x, "X");
+        require(slots[from].y >= y, "Y");
         unchecked {
-            states[from].x = states[from].x - x;
-            states[from].y = states[from].y - y;
+            slots[from].x = slots[from].x - x;
+            slots[from].y = slots[from].y - y;
         }
-        states[to].x = states[to].x + x;
-        states[to].y = states[to].y + y;
+        slots[to].x = slots[to].x + x;
+        slots[to].y = slots[to].y + y;
 
         emit Transferred(msg.sender, from, to, x, y);
     }
