@@ -3,7 +3,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ethers } from "ethers";
 
 import { MAX_UINT256 } from "./utils";
-import { ERC20CompLike, Kernel, Operator, Sequencer } from "../../typechain";
+import { ERC20CompLike, Kernel, Operator } from "../../typechain";
 
 export async function operations(token: ERC20CompLike, kernel: Kernel, operator: Operator) {
   const abi = new ethers.utils.AbiCoder();

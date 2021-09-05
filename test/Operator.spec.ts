@@ -29,6 +29,7 @@ describe('Operator', async () => {
 
   let join: Function;
   let move: Function;
+  let fetch: Function;
 
   const fixture = async () => {
     const ERC20CompLike = await ethers.getContractFactory('ERC20CompLike');
@@ -47,7 +48,7 @@ describe('Operator', async () => {
     await operatorFactory.create(token.address);
     operator = (await ethers.getContractAt('Operator', await operatorFactory.compute(token.address))) as Operator;
 
-    ({ join, move } = await operations(token, kernel, operator));
+    ({ join, move, fetch } = await operations(token, kernel, operator));
   };
 
   const joinFixture = async () => {
@@ -115,25 +116,18 @@ describe('Operator', async () => {
 
     it('should join', async () => {
       await join(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
-
-      const key = ethers.utils.keccak256(abi.encode(['address', 'address'], [token.address, wallet.address]));
-      expect(await kernel.get(key)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
+      expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
     });
     it('should join multiple times', async () => {
       await join(wallet, wallet.address, wallet.address, expandTo18Decimals(500));
       await join(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
-
-      const key = ethers.utils.keccak256(abi.encode(['address', 'address'], [token.address, wallet.address]));
-      expect(await kernel.get(key)).to.eql([expandTo18Decimals(510), expandTo18Decimals(510)]);
+      expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(510), expandTo18Decimals(510)]);
     });
     it.skip('should join with different accounts', async () => {});
     it('should join to another accounts', async () => {
       await join(wallet, other1.address, other2.address, expandTo18Decimals(10));
-
-      const key1 = ethers.utils.keccak256(abi.encode(['address', 'address'], [token.address, other1.address]));
-      expect(await kernel.get(key1)).to.eql([expandTo18Decimals(10), BigNumber.from(0)]);
-      const key2 = ethers.utils.keccak256(abi.encode(['address', 'address'], [token.address, other2.address]));
-      expect(await kernel.get(key2)).to.eql([BigNumber.from(0), expandTo18Decimals(10)]);
+      expect(await fetch(token.address, other1.address)).to.eql([expandTo18Decimals(10), BigNumber.from(0)]);
+      expect(await fetch(token.address, other2.address)).to.eql([BigNumber.from(0), expandTo18Decimals(10)]);
     });
     it('should join zero tokens', async () => {
       await operator.join(wallet.address, wallet.address);
@@ -142,14 +136,12 @@ describe('Operator', async () => {
     it.skip('should join line', async () => {});
     it('should join to non-symmetric state', async () => {
       await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
-      const from = ethers.utils.keccak256(abi.encode(['address', 'address'], [token.address, wallet.address]));
-      const to = ethers.utils.keccak256(abi.encode(['address', 'address'], [token.address, other1.address]));
-      await kernel.transfer(from, to, expandTo18Decimals(25), expandTo18Decimals(75));
-      expect(await kernel.get(from)).to.eql([expandTo18Decimals(75), expandTo18Decimals(25)]);
-      expect(await kernel.get(to)).to.eql([expandTo18Decimals(25), expandTo18Decimals(75)]);
+      await move(wallet.address, other1.address, expandTo18Decimals(25), expandTo18Decimals(75));
+      expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(75), expandTo18Decimals(25)]);
+      expect(await fetch(token.address, other1.address)).to.eql([expandTo18Decimals(25), expandTo18Decimals(75)]);
 
       await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
-      expect(await kernel.get(from)).to.eql([expandTo18Decimals(175), expandTo18Decimals(125)]);
+      expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(175), expandTo18Decimals(125)]);
     });
     it.skip('should emit an event', async () => {});
     it.skip('should revert when joining on zero shards', async () => {});
