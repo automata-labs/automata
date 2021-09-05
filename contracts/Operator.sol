@@ -11,6 +11,7 @@ import "./interfaces/IKernel.sol";
 import "./interfaces/IOperatorFactory.sol";
 import "./interfaces/ISequencer.sol";
 import "./libraries/access/Access.sol";
+import "./libraries/data/Slot.sol";
 import "./libraries/math/Cast.sol";
 import "./libraries/utils/Lock.sol";
 import "./libraries/utils/Multicall.sol";
@@ -51,8 +52,8 @@ contract Operator is IOperator, IOperatorEvents, Access, Lock, Multicall {
 
     /// @inheritdoc IOperator
     function exit(address to) external override lock {
-        State.Data memory state = kernel.fetch(underlying, address(this));
-        uint128 amount = Math.min(state.x, state.y).u128();
+        Slot.Data memory slot = kernel.fetch(underlying, address(this));
+        uint128 amount = Math.min(slot.x, slot.y).u128();
         kernel.modify(underlying, address(this), -amount.i128(), -amount.i128());
         sequencer.withdraw(to, amount);
 
