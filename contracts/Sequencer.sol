@@ -86,17 +86,17 @@ contract Sequencer is ISequencer, ISequencerEvents, Access {
         if (amount == 0) {
             return 0;
         } else {
-            require(amount <= Cursor.computeGlobalComplement(liquidity, decimals, _cardinality()), "SOVF");
+            require(amount <= Cursor.getCapacity(liquidity, decimals, _cardinality()), "SOVF");
         }
 
         uint256 stack = amount;
         uint256 liquidityNext = liquidity;
-        uint256 cursor = Cursor.computeCursor(liquidity, decimals);
+        uint256 cursor = Cursor.getCursor(liquidity, decimals);
         while (stack != 0) {
             address shard = shards[cursor];
             require(shard != address(0), "ADRZ");
 
-            uint256 complement = Cursor.computeCurrentComplement(liquidityNext, decimals);
+            uint256 complement = Cursor.getCapacityInContext(liquidityNext, decimals);
             if (complement != 0) {
                 TransferHelper.safeTransfer(underlying, shard, Math.min(stack, complement));
                 liquidityNext += Math.min(stack, complement);
@@ -122,14 +122,14 @@ contract Sequencer is ISequencer, ISequencerEvents, Access {
 
         uint256 stack = amount;
         uint256 liquidityNext = liquidity;
-        uint256 cursor = Cursor.computeCursor(liquidityNext, decimals);
+        uint256 cursor = Cursor.getCursor(liquidityNext, decimals);
         while (stack > 0) {
             address shard = shards[cursor];
             require(shard != address(0), "ADRZ");
 
             address[] memory targets  = new address[](1);
             bytes[] memory data = new bytes[](1);
-            uint256 balance = Cursor.computeShardLiqidity(liquidityNext, decimals, cursor);
+            uint256 balance = Cursor.getLiquidityInShard(liquidityNext, decimals, cursor);
             if (balance != 0) {
                 if (stack > balance) {
                     targets[0] = underlying;
