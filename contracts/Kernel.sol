@@ -45,11 +45,11 @@ contract Kernel is IKernel, IKernelEvents, Access, Multicall {
         require(slots[from].x >= x, "X");
         require(slots[from].y >= y, "Y");
         unchecked {
-            slots[from].x = slots[from].x - x;
-            slots[from].y = slots[from].y - y;
+            slots[from].x -= x;
+            slots[from].y -= y;
         }
-        slots[to].x = slots[to].x + x;
-        slots[to].y = slots[to].y + y;
+        slots[to].x += x;
+        slots[to].y += y;
 
         emit Transferred(msg.sender, from, to, x, y);
     }
