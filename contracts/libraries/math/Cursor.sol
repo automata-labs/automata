@@ -4,7 +4,8 @@ pragma solidity ^0.8.0;
 import "@uniswap/v3-core/contracts/libraries/BitMath.sol";
 
 library Cursor {
-    function computeCursor(uint256 liquidity, uint256 decimals) internal pure returns (uint256) {
+    /// @notice Returns the cursor of the current liquidity.
+    function getCursor(uint256 liquidity, uint256 decimals) internal pure returns (uint256) {
         uint256 value = liquidity / (uint256(10) ** decimals);
         if (value == 0) {
             return 0;
@@ -14,23 +15,27 @@ library Cursor {
         }
     }
 
-    function computeGlobalComplement(uint256 liquidity, uint256 decimals, uint256 cursor) internal pure returns (uint256) {
+    /// @notice Returns the total capacity left.
+    function getCapacity(uint256 liquidity, uint256 decimals, uint256 cursor) internal pure returns (uint256) {
         return (uint256(10) ** decimals << cursor) - uint256(10) ** decimals - liquidity;
     }
 
-    function computeCurrentLiquidity(uint256 liquidity, uint256 decimals) internal pure returns (uint256) {
-        uint256 cursor = computeCursor(liquidity, decimals);
-        return liquidity - ((uint256(10) ** decimals << cursor) - uint256(10) ** decimals);
-    }
-
-    function computeCurrentComplement(uint256 liquidity, uint256 decimals) internal pure returns (uint256) {
-        uint256 cursor = computeCursor(liquidity, decimals);
+    /// @notice Returns the capacity of the current shard.
+    function getCapacityInContext(uint256 liquidity, uint256 decimals) internal pure returns (uint256) {
+        uint256 cursor = getCursor(liquidity, decimals);
         return (uint256(10) ** decimals << (cursor + 1)) - uint256(10) ** decimals - liquidity;
     }
 
-    function computeShardLiqidity(uint256 liquidity, uint256 decimals, uint256 cursor) internal pure returns (uint256) {
-        if (cursor == computeCursor(liquidity, decimals)) {
-            return computeCurrentLiquidity(liquidity, decimals);
+    /// @notice Returns the liquidity of the current shard.
+    function getLiquidityInContext(uint256 liquidity, uint256 decimals) internal pure returns (uint256) {
+        uint256 cursor = getCursor(liquidity, decimals);
+        return liquidity - ((uint256(10) ** decimals << cursor) - uint256(10) ** decimals);
+    }
+
+    /// @notice Returns the liquidity of any shard, given a cursor.
+    function getLiquidityInShard(uint256 liquidity, uint256 decimals, uint256 cursor) internal pure returns (uint256) {
+        if (cursor == getCursor(liquidity, decimals)) {
+            return getLiquidityInContext(liquidity, decimals);
         } else {
             return (uint256(10) ** decimals << cursor);
         }
