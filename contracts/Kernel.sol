@@ -19,9 +19,10 @@ contract Kernel is IKernel, IKernelEvents, Access, Multicall {
     }
 
     /// @inheritdoc IKernel
-    function set(bytes32 key, Slot.Data memory slot) external override auth {
-        slots[key] = slot;
-        emit Set(msg.sender, key, slot);
+    function set(bytes32 key, uint128 x, uint128 y) external override auth {
+        slots[key].x = x;
+        slots[key].y = y;
+        emit Set(msg.sender, key, x, y);
     }
 
     /// @inheritdoc IKernel
