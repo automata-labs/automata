@@ -12,7 +12,7 @@ interface IKernel {
 
     /// @notice Set a slot.
     /// @dev Requires authorization.
-    function set(bytes32 key, Slot.Data memory slot) external;
+    function set(bytes32 key, uint128 x, uint128 y) external;
 
     /// @notice Updates a slot.
     /// @dev Requires authorization. Updates the slot by deltas and reverts on negative underflow.

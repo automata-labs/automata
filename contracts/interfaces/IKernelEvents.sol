@@ -5,7 +5,7 @@ import "../libraries/data/Slot.sol";
 
 interface IKernelEvents {
     /// @notice Emitted when a slot is set.
-    event Set(address sender, bytes32 key, Slot.Data slot);
+    event Set(address sender, bytes32 key, uint128 x, uint128 y);
 
     /// @notice Emitted when a slot is updated.
     event Updated(address sender, bytes32 key, int128 delx, int128 dely);
