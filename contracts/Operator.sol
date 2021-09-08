@@ -10,6 +10,7 @@ import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "./interfaces/IKernel.sol";
 import "./interfaces/IOperatorFactory.sol";
 import "./interfaces/ISequencer.sol";
+import "./interfaces/external/IGovernorAlpha.sol";
 import "./libraries/access/Access.sol";
 import "./libraries/data/Slot.sol";
 import "./libraries/math/Cast.sol";
@@ -27,21 +28,49 @@ contract Operator is IOperator, IOperatorEvents, Access, Lock, Multicall {
     IKernel public immutable override kernel;
     /// @inheritdoc IOperator
     address public immutable override underlying;
+
     /// @inheritdoc IOperator
     ISequencer public override sequencer;
+    /// @inheritdoc IOperator
+    address public override governor;
+
+    struct Frozen {
+        uint256 id;
+        bool frozen;
+    }
+    /// @inheritdoc IOperator
+    Frozen public override frozen;
 
     constructor() {
         (kernel, underlying) = IOperatorFactory(msg.sender).parameters();
     }
 
-    /// @inheritdoc IOperator
-    function set(ISequencer sequencer_) external override auth {
-        sequencer = sequencer_;
-        emit Set(msg.sender, address(sequencer));
+    function set(bytes32 key, bytes memory data) external auth {
+        if (key == "sequencer") sequencer = abi.decode(data, (ISequencer));
+        else if (key == "governor") governor = abi.decode(data, (address));
+        else revert("!");
+    }
+
+    function freeze(uint256 pid) external override {
+        // governor is considered active on either `Pending` or `Active` states
+        // `virtualize` should be frozen when governor is active
+        if (IGovernorAlpha(governor).state(pid) == 0 || IGovernorAlpha(governor).state(pid) == 1) {
+            frozen.frozen = true;
+            frozen.id = pid;
+        }
+    }
+
+    function unfreeze() external override {
+        if (IGovernorAlpha(governor).state(frozen.id) > 0) {
+            frozen.frozen = false;
+            frozen.id = 0;
+        }
     }
 
     /// @inheritdoc IOperator
-    function join(address tox, address toy) external override lock {
+    function virtualize(address tox, address toy) external override lock {
+        require(frozen.frozen == false, "FROZEN");
+
         uint256 amount = sequencer.deposit();
         // FIXME: Use multicall to save gas
         kernel.modify(underlying, tox, amount.u128().i128(), 0);
@@ -51,7 +80,7 @@ contract Operator is IOperator, IOperatorEvents, Access, Lock, Multicall {
     }
 
     /// @inheritdoc IOperator
-    function exit(address to) external override lock {
+    function realize(address to) external override lock {
         Slot.Data memory slot = kernel.fetch(underlying, address(this));
         uint128 amount = Math.min(slot.x, slot.y).u128();
         kernel.modify(underlying, address(this), -amount.i128(), -amount.i128());
@@ -61,8 +90,8 @@ contract Operator is IOperator, IOperatorEvents, Access, Lock, Multicall {
     }
 
     /// @inheritdoc IOperator
-    function move(address from, address to, uint128 x, uint128 y) external override lock {
-        kernel.move(underlying, from, to, x, y);
+    function transfer(address to, uint128 x, uint128 y) external override lock {
+        kernel.move(underlying, msg.sender, to, x, y);
     }
 
     /// @inheritdoc IOperator

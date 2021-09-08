@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-interface IGovernorAlpha {
+interface IGovernorBravo {
     function proposalCount() external view returns (uint);
     function proposals(uint proposalId) external view returns (
         uint id,
@@ -11,6 +11,7 @@ interface IGovernorAlpha {
         uint endBlock,
         uint forVotes,
         uint againstVotes,
+        uint abstainVotes,
         bool canceled,
         bool executed
     );

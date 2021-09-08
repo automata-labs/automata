@@ -35,48 +35,44 @@ export const ROOT = ethers.utils.arrayify('0x00000000');
  * Blockchain
  */
 
-export async function mineBlock() {
-  await advanceTimeAndBlock(15);
+export async function mineBlock(provider) {
+  await ethers.provider.send('evm_increaseTime', [15]);
+  await ethers.provider.send('evm_mine', []);
 }
 
-export async function mineBlocks(n: number) {
+export async function mineBlocks(provider, n: number) {
   for (let i = 0; i < n; i++) {
-    await mineBlock();
+    await mineBlock(provider);
   }
 }
 
 // Workaround for time travel tests bug: https://github.com/Tonyhaenn/hh-time-travel/blob/0161d993065a0b7585ec5a043af2eb4b654498b8/test/test.js#L12
-export const advanceTimeAndBlock = async function (forwardTime: number) {
-  const currentBlockNumber = await ethers.provider.getBlockNumber();
-  const currentBlock = await ethers.provider.getBlock(currentBlockNumber);
+export async function mineToFuture(provider, future: number) {
+  const currentBlockNumber = await provider.getBlockNumber();
+  const currentBlock = await provider.getBlock(currentBlockNumber);
 
   if (currentBlock === null) {
     // Workaround for https://github.com/nomiclabs/hardhat/issues/1183
-    await ethers.provider.send('evm_increaseTime', [forwardTime]);
-    await ethers.provider.send('evm_mine', []);
+    await provider.send('evm_increaseTime', [future]);
+    await provider.send('evm_mine', []);
     // Set the next blocktime back to 15 seconds
-    await ethers.provider.send('evm_increaseTime', [15]);
+    await provider.send('evm_increaseTime', [15]);
     return;
   }
 
   const currentTime = currentBlock.timestamp;
-  const futureTime = currentTime + forwardTime;
-  await ethers.provider.send('evm_setNextBlockTimestamp', [futureTime]);
-  await ethers.provider.send('evm_mine', []);
-};
-
-export async function getCurrentBlock() {
-  const currentBlockNumber = await ethers.provider.getBlockNumber();
-  return ethers.provider.getBlock(currentBlockNumber);
-}
-
-export async function getCurrentTimestamp() {
-  return (await getCurrentBlock()).timestamp;
+  const futureTime = currentTime + future;
+  await provider.send('evm_setNextBlockTimestamp', [futureTime]);
+  await provider.send('evm_mine', []);
 }
 
 /**
  * Miscellaenous
  */
+
+export const bytes32 = (text: string) => {
+  return ethers.utils.formatBytes32String(text);
+};
 
 export const key = (signature: string) => {
   return keccak256(toUtf8Bytes(signature));

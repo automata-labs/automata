@@ -7,12 +7,12 @@ import { SequencerFactory } from '../typechain/OperatorFactory.d.ts';
 // @ts-ignore
 import { OperatorFactory } from '../typechain/OperatorFactory.d.ts';
 import { operations } from './shared/functions';
-import { expandTo18Decimals, getCurrentTimestamp, MAX_UINT256, ROOT } from './shared/utils';
+import { bytes32, expandTo18Decimals, MAX_UINT256, ROOT } from './shared/utils';
 
-const { BigNumber } = ethers;
-const { createFixtureLoader } = waffle;
+const { createFixtureLoader, provider } = waffle;
 
 describe('AToken', async () => {
+  let abi = new ethers.utils.AbiCoder();
   let loadFixture;
   let wallet;
   let other1;
@@ -28,7 +28,7 @@ describe('AToken', async () => {
 
   let aToken: AToken;
 
-  let join: Function;
+  let virtualize: Function;
   let move: Function;
   let fetch: Function;
 
@@ -39,7 +39,8 @@ describe('AToken', async () => {
     const OperatorFactory = await ethers.getContractFactory('OperatorFactory');
     const AToken = await ethers.getContractFactory('AToken');
 
-    token = (await ERC20CompLike.deploy(wallet.address, wallet.address, await getCurrentTimestamp() + 60 * 60)) as ERC20CompLike;
+    const timestamp = (await provider.getBlock('latest')).timestamp;
+    token = (await ERC20CompLike.deploy(wallet.address, wallet.address, timestamp + 60 * 60)) as ERC20CompLike;
     kernel = (await Kernel.deploy()) as Kernel;
     sequencerFactory = (await SequencerFactory.deploy()) as SequencerFactory;
     operatorFactory = (await OperatorFactory.deploy(kernel.address)) as OperatorFactory;
@@ -58,9 +59,9 @@ describe('AToken', async () => {
 
     await token.approve(sequencer.address, MAX_UINT256);
     await sequencer.clones(10);
-    await operator.set(sequencer.address);
+    await operator.set(bytes32('sequencer'), abi.encode(['address'], [sequencer.address]));
 
-    ({ join, move, fetch } = await operations(token, kernel, operator));
+    ({ virtualize, move, fetch } = await operations({ token, kernel, operator }));
   };
 
   const mintFixture = async () => {
@@ -82,7 +83,7 @@ describe('AToken', async () => {
     });
 
     it('should mint', async () => {
-      await join(wallet, aToken.address, wallet.address, expandTo18Decimals(100));
+      await virtualize(wallet, aToken.address, wallet.address, expandTo18Decimals(100));
       expect((await fetch(token.address, aToken.address)).x).to.equal(expandTo18Decimals(100));
       expect((await fetch(token.address, aToken.address)).y).to.equal(0);
       expect((await fetch(token.address, wallet.address)).x).to.equal(0);
@@ -107,13 +108,13 @@ describe('AToken', async () => {
     });
 
     it('should burn', async () => {
-      // join & mint
-      await join(wallet, aToken.address, wallet.address, expandTo18Decimals(100));
+      // virtualize & mint
+      await virtualize(wallet, aToken.address, wallet.address, expandTo18Decimals(100));
       await aToken.mint(wallet.address);
       expect(await aToken.totalSupply()).to.equal(expandTo18Decimals(100));
       expect(await aToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(100));
 
-      // burn
+      // burn & virtualize
       await aToken.transfer(aToken.address, expandTo18Decimals(100));
       await aToken.burn(wallet.address);
       expect((await fetch(token.address, aToken.address)).x).to.equal(0);
@@ -121,9 +122,9 @@ describe('AToken', async () => {
       expect((await fetch(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
       expect((await fetch(token.address, wallet.address)).y).to.equal(expandTo18Decimals(100));
 
-      // exit
-      await operator.move(wallet.address, operator.address, expandTo18Decimals(100), expandTo18Decimals(100));
-      await operator.exit(other1.address);
+      // realize
+      await operator.transfer(operator.address, expandTo18Decimals(100), expandTo18Decimals(100));
+      await operator.realize(other1.address);
       expect(await token.balanceOf(other1.address)).to.equal(expandTo18Decimals(100));
     });
   });
