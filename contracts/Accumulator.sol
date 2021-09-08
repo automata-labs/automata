@@ -17,29 +17,19 @@ contract Accumulator is IAccumulator {
     using State for mapping(bytes32 => State.Data);
     using State for State.Data;
 
-    /// @inheritdoc IAccumulator
+    /// @inheritdoc IAccumulatorImmutables
     IKernel public immutable override kernel;
 
-    /// @inheritdoc IAccumulator
+    /// @inheritdoc IAccumulatorState
     mapping(address => State.Data) public override accumulators;
-    /// @inheritdoc IAccumulator
+    /// @inheritdoc IAccumulatorState
     mapping(bytes32 => State.Data) public override states;
 
     constructor(IKernel kernel_) {
         kernel = kernel_;
     }
 
-    /// @inheritdoc IAccumulator
-    function getAccumulator(address underlying) external view override returns (State.Data memory) {
-        return accumulators[underlying];
-    }
-
-    /// @inheritdoc IAccumulator
-    function getState(address underlying, address owner) external view override returns (State.Data memory) {
-        return states.get(underlying, owner).normalize(accumulators[underlying].x128);
-    }
-
-    /// @inheritdoc IAccumulator
+    /// @inheritdoc IAccumulatorFunctions
     function grow(address underlying) external override returns (uint128 amount) {
         amount = kernel.fetch(underlying, address(this)).y - accumulators[underlying].y;
 
@@ -49,9 +39,11 @@ contract Accumulator is IAccumulator {
             FixedPoint.Q128,
             accumulators[underlying].x
         );
+
+        emit Grown(underlying, amount);
     }
 
-    /// @inheritdoc IAccumulator
+    /// @inheritdoc IAccumulatorFunctions
     function stake(address underlying, address to) external override returns (uint128 x) {
         x = kernel.fetch(underlying, address(this)).x - accumulators[underlying].x;
 
@@ -61,9 +53,11 @@ contract Accumulator is IAccumulator {
         states.get(underlying, to).x = stateNext.x + x;
         states.get(underlying, to).y = stateNext.y;
         states.get(underlying, to).x128 = stateNext.x128;
+
+        emit Staked(msg.sender, underlying, to, x);
     }
 
-    /// @inheritdoc IAccumulator
+    /// @inheritdoc IAccumulatorFunctions
     function unstake(address underlying, address to, uint128 x) external override {
         State.Data memory stateNext = states.get(underlying, msg.sender).normalize(accumulators[underlying].x128);
 
@@ -73,9 +67,11 @@ contract Accumulator is IAccumulator {
         states.get(underlying, msg.sender).x128 = stateNext.x128;
 
         kernel.move(underlying, address(this), to, x, 0);
+
+        emit Unstaked(msg.sender, underlying, to, x);
     }
 
-    /// @inheritdoc IAccumulator
+    /// @inheritdoc IAccumulatorFunctions
     function collect(address underlying, address to, uint128 y) external override returns (uint128 amount) {
         State.Data memory stateNext = states.get(underlying, msg.sender).normalize(accumulators[underlying].x128);
 
@@ -86,5 +82,7 @@ contract Accumulator is IAccumulator {
         states.get(underlying, msg.sender).x128 = stateNext.x128;
 
         kernel.move(underlying, address(this), to, 0, amount);
+
+        emit Collected(msg.sender, underlying, to, y);
     }
 }
