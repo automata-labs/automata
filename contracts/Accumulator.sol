@@ -29,6 +29,11 @@ contract Accumulator is IAccumulator {
         kernel = kernel_;
     }
 
+    /// @inheritdoc IAccumulatorStateDerived
+    function get(address underlying, address owner) external view override returns (State.Data memory) {
+        return states.get(underlying, owner).normalize(accumulators[underlying].x128);
+    }
+
     /// @inheritdoc IAccumulatorFunctions
     function grow(address underlying) external override returns (uint128 amount) {
         amount = kernel.fetch(underlying, address(this)).y - accumulators[underlying].y;

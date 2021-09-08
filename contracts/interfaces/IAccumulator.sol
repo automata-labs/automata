@@ -5,10 +5,12 @@ import "./accumulator/IAccumulatorEvents.sol";
 import "./accumulator/IAccumulatorFunctions.sol";
 import "./accumulator/IAccumulatorImmutables.sol";
 import "./accumulator/IAccumulatorState.sol";
+import "./accumulator/IAccumulatorStateDerived.sol";
 
 interface IAccumulator is
     IAccumulatorImmutables,
     IAccumulatorState,
+    IAccumulatorStateDerived,
     IAccumulatorFunctions,
     IAccumulatorEvents
 {}
