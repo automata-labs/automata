@@ -2,30 +2,29 @@
 pragma solidity ^0.8.0;
 
 import "./interfaces/IKernel.sol";
-import "./interfaces/IKernelEvents.sol";
 
 import "./libraries/access/Access.sol";
 import "./libraries/data/Slot.sol";
 import "./libraries/utils/Multicall.sol";
 
 /// @title Kernel
-contract Kernel is IKernel, IKernelEvents, Access, Multicall {
-    /// @inheritdoc IKernel
+contract Kernel is IKernel, Access, Multicall {
+    /// @inheritdoc IKernelState
     mapping(bytes32 => Slot.Data) public override slots;
 
-    /// @inheritdoc IKernel
+    /// @inheritdoc IKernelStateDerived
     function get(bytes32 key) external view override returns (Slot.Data memory) {
         return slots[key];
     }
 
-    /// @inheritdoc IKernel
+    /// @inheritdoc IKernelFunctions
     function set(bytes32 key, uint128 x, uint128 y) external override auth {
         slots[key].x = x;
         slots[key].y = y;
         emit Set(msg.sender, key, x, y);
     }
 
-    /// @inheritdoc IKernel
+    /// @inheritdoc IKernelFunctions
     function update(bytes32 key, int128 delx, int128 dely) external override auth {
         if (delx > 0) slots[key].x += uint128(delx);
         if (delx < 0) {
@@ -41,7 +40,7 @@ contract Kernel is IKernel, IKernelEvents, Access, Multicall {
         emit Updated(msg.sender, key, delx, dely);
     }
 
-    /// @inheritdoc IKernel
+    /// @inheritdoc IKernelFunctions
     function transfer(bytes32 from, bytes32 to, uint128 x, uint128 y) external override auth {
         require(slots[from].x >= x, "X");
         require(slots[from].y >= y, "Y");

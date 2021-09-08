@@ -46,13 +46,13 @@ contract Emulator01 is IEmulator01, Access, Lock {
         decimals = IERC20Metadata(underlying_).decimals();
     }
 
-    /// @inheritdoc IEmulator01DerivedState
+    /// @inheritdoc IEmulator01StateDerived
     function phase0(uint256 pid) external view override returns (uint256, uint256) {
         (uint256 startBlock, ) = _duration(pid);
         return (startBlock, startBlock + period - 1);
     }
 
-    /// @inheritdoc IEmulator01DerivedState
+    /// @inheritdoc IEmulator01StateDerived
     function phase1(uint256 pid) external view override returns (uint256, uint256) {
         (uint256 startBlock, uint256 endBlock) = _duration(pid);
         return (startBlock + period, endBlock);

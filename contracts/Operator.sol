@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import "./interfaces/IOperator.sol";
-import "./interfaces/IOperatorEvents.sol";
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
@@ -19,26 +18,26 @@ import "./libraries/utils/Multicall.sol";
 import "./libraries/utils/Shell.sol";
 
 /// @title Operator
-contract Operator is IOperator, IOperatorEvents, Access, Lock, Multicall {
+contract Operator is IOperator, Access, Lock, Multicall {
     using Cast for uint256;
     using Cast for uint128;
     using Shell for IKernel;
 
-    /// @inheritdoc IOperator
+    /// @inheritdoc IOperatorImmutables
     IKernel public immutable override kernel;
-    /// @inheritdoc IOperator
+    /// @inheritdoc IOperatorImmutables
     address public immutable override underlying;
 
-    /// @inheritdoc IOperator
+    /// @inheritdoc IOperatorState
     ISequencer public override sequencer;
-    /// @inheritdoc IOperator
+    /// @inheritdoc IOperatorState
     address public override governor;
 
     struct Frozen {
         uint256 id;
         bool frozen;
     }
-    /// @inheritdoc IOperator
+    /// @inheritdoc IOperatorState
     Frozen public override frozen;
 
     constructor() {
@@ -51,6 +50,7 @@ contract Operator is IOperator, IOperatorEvents, Access, Lock, Multicall {
         else revert("!");
     }
 
+    /// @inheritdoc IOperatorFunctions
     function freeze(uint256 pid) external override {
         // governor is considered active on either `Pending` or `Active` states
         // `virtualize` should be frozen when governor is active
@@ -60,6 +60,7 @@ contract Operator is IOperator, IOperatorEvents, Access, Lock, Multicall {
         }
     }
 
+    /// @inheritdoc IOperatorFunctions
     function unfreeze() external override {
         if (IGovernorAlpha(governor).state(frozen.id) > 0) {
             frozen.frozen = false;
@@ -67,7 +68,7 @@ contract Operator is IOperator, IOperatorEvents, Access, Lock, Multicall {
         }
     }
 
-    /// @inheritdoc IOperator
+    /// @inheritdoc IOperatorFunctions
     function virtualize(address tox, address toy) external override lock {
         require(frozen.frozen == false, "FROZEN");
 
@@ -79,7 +80,7 @@ contract Operator is IOperator, IOperatorEvents, Access, Lock, Multicall {
         emit Joined(msg.sender, tox, toy, amount.u128());
     }
 
-    /// @inheritdoc IOperator
+    /// @inheritdoc IOperatorFunctions
     function realize(address to) external override lock {
         Slot.Data memory slot = kernel.fetch(underlying, address(this));
         uint128 amount = Math.min(slot.x, slot.y).u128();
@@ -89,12 +90,12 @@ contract Operator is IOperator, IOperatorEvents, Access, Lock, Multicall {
         emit Exited(msg.sender, to, amount);
     }
 
-    /// @inheritdoc IOperator
+    /// @inheritdoc IOperatorFunctions
     function transfer(address to, uint128 x, uint128 y) external override lock {
         kernel.move(underlying, msg.sender, to, x, y);
     }
 
-    /// @inheritdoc IOperator
+    /// @inheritdoc IOperatorFunctions
     function pay(address token, address to, uint256 value) external override {
         TransferHelper.safeTransferFrom(token, msg.sender, to, value);
     }
