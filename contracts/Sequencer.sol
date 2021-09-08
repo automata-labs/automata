@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import "./interfaces/ISequencer.sol";
-import "./interfaces/ISequencerEvents.sol";
 
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
@@ -16,22 +15,22 @@ import "./libraries/access/Access.sol";
 import "./libraries/math/Cursor.sol";
 
 /// @title Sequencer
-contract Sequencer is ISequencer, ISequencerEvents, Access {
+contract Sequencer is ISequencer, Access {
     uint256 private constant MAX_CLONES = uint256(2) ** uint256(8);
 
-    /// @inheritdoc ISequencer
+    /// @inheritdoc ISequencerImmutables
     address public immutable override underlying;
-    /// @inheritdoc ISequencer
+    /// @inheritdoc ISequencerImmutables
     uint256 public immutable override decimals;
-    /// @inheritdoc ISequencer
+    /// @inheritdoc ISequencerImmutables
     address public immutable override implementation;
 
-    /// @inheritdoc ISequencer
+    /// @inheritdoc ISequencerState
     address[] public override shards;
-    /// @inheritdoc ISequencer
+    /// @inheritdoc ISequencerState
     mapping(address => uint256) public override cursors;
 
-    /// @inheritdoc ISequencer
+    /// @inheritdoc ISequencerState
     uint256 public override liquidity;
 
     constructor() {
@@ -45,28 +44,28 @@ contract Sequencer is ISequencer, ISequencerEvents, Access {
         implementation = implementation_;
     }
 
-    /// @inheritdoc ISequencer
+    /// @inheritdoc ISequencerStateDerived
     function cardinality() external view override returns (uint256) {
         return _cardinality();
     }
 
-    /// @inheritdoc ISequencer
+    /// @inheritdoc ISequencerStateDerived
     function cardinalityMax() external pure override returns (uint256) {
         return MAX_CLONES;
     }
 
-    /// @inheritdoc ISequencer
+    /// @inheritdoc ISequencerStateDerived
     function compute(uint256 cursor) external view override returns (address) {
         return Clones.predictDeterministicAddress(implementation, keccak256(abi.encodePacked(cursor)), address(this));
     }
 
-    /// @inheritdoc ISequencer
+    /// @inheritdoc ISequencerFunctions
     function clone() external override returns (uint256, address) {
         require(_cardinality() + 1 <= MAX_CLONES, "MAX");
         return _clone();
     }
 
-    /// @inheritdoc ISequencer
+    /// @inheritdoc ISequencerFunctions
     function clones(uint256 amount) external override returns (
         uint256[] memory cursored,
         address[] memory cloned
@@ -80,7 +79,7 @@ contract Sequencer is ISequencer, ISequencerEvents, Access {
         }
     }
 
-    /// @inheritdoc ISequencer
+    /// @inheritdoc ISequencerFunctions
     function deposit() external override auth returns (uint256 amount) {
         amount = IERC20(underlying).balanceOf(address(this));
         if (amount == 0) {
@@ -112,7 +111,7 @@ contract Sequencer is ISequencer, ISequencerEvents, Access {
         emit Sequenced(liquidity);
     }
 
-    /// @inheritdoc ISequencer
+    /// @inheritdoc ISequencerFunctions
     function withdraw(address to, uint256 amount) external override auth returns (uint256 withdrawn) {
         if (amount == 0) {
             return 0;
@@ -158,7 +157,7 @@ contract Sequencer is ISequencer, ISequencerEvents, Access {
         emit Withdrawn(liquidity);
     }
 
-    /// @inheritdoc ISequencer
+    /// @inheritdoc ISequencerFunctions
     function execute(
         uint256 cursor,
         address[] calldata targets,

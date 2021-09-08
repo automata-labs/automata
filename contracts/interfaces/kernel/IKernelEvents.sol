@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "../libraries/data/Slot.sol";
-
 interface IKernelEvents {
     /// @notice Emitted when a slot is set.
     event Set(address sender, bytes32 key, uint128 x, uint128 y);
