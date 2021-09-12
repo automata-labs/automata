@@ -31,45 +31,43 @@ contract Accumulator is IAccumulator {
 
     /// @inheritdoc IAccumulatorStateDerived
     function get(address underlying, address owner) external view override returns (State.Data memory) {
-        return states.get(underlying, owner).normalize(accumulators[underlying].x128);
+        State.Data memory state = states.get(underlying, owner);
+        state.y += FullMath.mulDiv(state.x, accumulators[underlying].x128 - state.x128, FixedPoint.Q128).u128();
+        state.x128 = accumulators[underlying].x128;
+
+        return state;
     }
 
     /// @inheritdoc IAccumulatorFunctions
-    function grow(address underlying) external override returns (uint128 amount) {
-        amount = kernel.fetch(underlying, address(this)).y - accumulators[underlying].y;
+    function grow(address underlying) external override returns (uint128 y) {
+        y = kernel.fetch(underlying, address(this)).y - accumulators[underlying].y;
 
-        accumulators[underlying].y += amount;
-        accumulators[underlying].x128 += FullMath.mulDiv(
-            amount,
-            FixedPoint.Q128,
-            accumulators[underlying].x
-        );
+        accumulators[underlying].y += y;
+        accumulators[underlying].x128 += FullMath.mulDiv(y, FixedPoint.Q128, accumulators[underlying].x);
 
-        emit Grown(underlying, amount);
+        emit Grown(underlying, y);
     }
 
     /// @inheritdoc IAccumulatorFunctions
     function stake(address underlying, address to) external override returns (uint128 x) {
         x = kernel.fetch(underlying, address(this)).x - accumulators[underlying].x;
 
-        State.Data memory stateNext = states.get(underlying, to).normalize(accumulators[underlying].x128);
-
+        State.Data storage state = states.get(underlying, to);
+        state.y += FullMath.mulDiv(state.x, accumulators[underlying].x128 - state.x128, FixedPoint.Q128).u128();
+        state.x += x;
+        state.x128 = accumulators[underlying].x128;
         accumulators[underlying].x += x;
-        states.get(underlying, to).x = stateNext.x + x;
-        states.get(underlying, to).y = stateNext.y;
-        states.get(underlying, to).x128 = stateNext.x128;
 
         emit Staked(msg.sender, underlying, to, x);
     }
 
     /// @inheritdoc IAccumulatorFunctions
     function unstake(address underlying, address to, uint128 x) external override {
-        State.Data memory stateNext = states.get(underlying, msg.sender).normalize(accumulators[underlying].x128);
-
+        State.Data storage state = states.get(underlying, msg.sender);
+        state.y += FullMath.mulDiv(state.x, accumulators[underlying].x128 - state.x128, FixedPoint.Q128).u128();
+        state.x -= x;
+        state.x128 = accumulators[underlying].x128;
         accumulators[underlying].x -= x;
-        states.get(underlying, msg.sender).x = stateNext.x - x;
-        states.get(underlying, msg.sender).y = stateNext.y;
-        states.get(underlying, msg.sender).x128 = stateNext.x128;
 
         kernel.move(underlying, address(this), to, x, 0);
 
@@ -77,17 +75,17 @@ contract Accumulator is IAccumulator {
     }
 
     /// @inheritdoc IAccumulatorFunctions
-    function collect(address underlying, address to, uint128 y) external override returns (uint128 amount) {
-        State.Data memory stateNext = states.get(underlying, msg.sender).normalize(accumulators[underlying].x128);
+    function collect(address underlying, address to, uint128 y) external override returns (uint128 c) {
+        c = (y > accumulators[underlying].y) ? accumulators[underlying].y : y;
 
-        amount = (y > accumulators[underlying].y) ? accumulators[underlying].y : y;
+        State.Data storage state = states.get(underlying, msg.sender);
+        state.y += FullMath.mulDiv(state.x, accumulators[underlying].x128 - state.x128, FixedPoint.Q128).u128();
+        state.y -= c;
+        state.x128 = accumulators[underlying].x128;
+        accumulators[underlying].y -= c;
 
-        accumulators[underlying].y -= amount;
-        states.get(underlying, msg.sender).y = stateNext.y - amount;
-        states.get(underlying, msg.sender).x128 = stateNext.x128;
+        kernel.move(underlying, address(this), to, 0, c);
 
-        kernel.move(underlying, address(this), to, 0, amount);
-
-        emit Collected(msg.sender, underlying, to, y);
+        emit Collected(msg.sender, underlying, to, c);
     }
 }
