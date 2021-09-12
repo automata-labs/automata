@@ -25,19 +25,19 @@ contract Kernel is IKernel, Access, Multicall {
     }
 
     /// @inheritdoc IKernelFunctions
-    function update(bytes32 key, int128 delx, int128 dely) external override auth {
-        if (delx > 0) slots[key].x += uint128(delx);
-        if (delx < 0) {
-            require(slots[key].x >= uint128(-delx), "-");
-            unchecked { slots[key].x -= uint128(-delx); }
+    function update(bytes32 key, int128 dx, int128 dy) external override auth {
+        if (dx > 0) slots[key].x += uint128(dx);
+        if (dx < 0) {
+            require(slots[key].x >= uint128(-dx), "-");
+            unchecked { slots[key].x -= uint128(-dx); }
         }
-        if (dely > 0) slots[key].y += uint128(dely);
-        if (dely < 0) {
-            require(slots[key].y >= uint128(-dely), "-");
-            unchecked { slots[key].y -= uint128(-dely); }
+        if (dy > 0) slots[key].y += uint128(dy);
+        if (dy < 0) {
+            require(slots[key].y >= uint128(-dy), "-");
+            unchecked { slots[key].y -= uint128(-dy); }
         }
 
-        emit Updated(msg.sender, key, delx, dely);
+        emit Updated(msg.sender, key, dx, dy);
     }
 
     /// @inheritdoc IKernelFunctions
