@@ -3,7 +3,8 @@ require('dotenv').config();
 import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-waffle';
 import '@typechain/hardhat';
-import "hardhat-gas-reporter";
+import 'hardhat-gas-reporter';
+import 'hardhat-contract-sizer';
 
 module.exports = {
   solidity: {
@@ -13,7 +14,7 @@ module.exports = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 999999,
+            runs: 5000,
           }
         },
       },
@@ -22,7 +23,7 @@ module.exports = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 999999,
+            runs: 5000,
           }
         },
       },

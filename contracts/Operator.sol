@@ -54,7 +54,7 @@ contract Operator is IOperator, Access, Lock, Multicall {
     function freeze(uint256 pid) external override {
         // governor is considered active on either `Pending` or `Active` states
         // `virtualize` should be frozen when governor is active
-        if (IGovernorAlpha(governor).state(pid) == 0 || IGovernorAlpha(governor).state(pid) == 1) {
+        if (IGovernorAlpha(governor).state(pid) <= 1) {
             frozen.frozen = true;
             frozen.id = pid;
         }
@@ -62,7 +62,7 @@ contract Operator is IOperator, Access, Lock, Multicall {
 
     /// @inheritdoc IOperatorFunctions
     function unfreeze() external override {
-        if (IGovernorAlpha(governor).state(frozen.id) > 0) {
+        if (IGovernorAlpha(governor).state(frozen.id) > 1) {
             frozen.frozen = false;
             frozen.id = 0;
         }

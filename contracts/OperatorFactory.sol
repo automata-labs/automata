@@ -28,20 +28,21 @@ contract OperatorFactory is IOperatorFactory {
 
     /// @inheritdoc IOperatorFactoryStateDerived
     function compute(address token) external view override returns (address) {
-        return address(
-            uint160(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            bytes1(0xff),
-                            address(this),
-                            keccak256(abi.encode(token)),
-                            OPERATOR_BYTECODE_HASH
+        return
+            address(
+                uint160(
+                    uint256(
+                        keccak256(
+                            abi.encodePacked(
+                                bytes1(0xff),
+                                address(this),
+                                keccak256(abi.encode(token)),
+                                OPERATOR_BYTECODE_HASH
+                            )
                         )
                     )
                 )
-            )
-        );
+            );
     }
 
     /// @inheritdoc IOperatorFactoryFunctions
