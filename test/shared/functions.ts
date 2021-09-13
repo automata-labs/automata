@@ -32,7 +32,7 @@ export async function operations(context: Context) {
   };
 
   const fetch = async (underlying: string, owner: string) => {
-    return kernel.get(ethers.utils.keccak256(abi.encode(['address', 'address'], [underlying, owner])));
+    return kernel.read(ethers.utils.keccak256(abi.encode(['address', 'address'], [underlying, owner])));
   };
 
   const getState = async (underlying: string, owner: string) => {

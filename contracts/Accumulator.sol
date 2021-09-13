@@ -40,7 +40,7 @@ contract Accumulator is IAccumulator {
 
     /// @inheritdoc IAccumulatorFunctions
     function grow(address underlying) external override returns (uint128 y) {
-        y = kernel.fetch(underlying, address(this)).y - accumulators[underlying].y;
+        y = kernel.get(underlying, address(this)).y - accumulators[underlying].y;
 
         accumulators[underlying].y += y;
         accumulators[underlying].x128 += FullMath.mulDiv(y, FixedPoint.Q128, accumulators[underlying].x);
@@ -50,7 +50,7 @@ contract Accumulator is IAccumulator {
 
     /// @inheritdoc IAccumulatorFunctions
     function stake(address underlying, address to) external override returns (uint128 x) {
-        x = kernel.fetch(underlying, address(this)).x - accumulators[underlying].x;
+        x = kernel.get(underlying, address(this)).x - accumulators[underlying].x;
 
         State.Data storage state = states.get(underlying, to);
         state.y += FullMath.mulDiv(state.x, accumulators[underlying].x128 - state.x128, FixedPoint.Q128).u128();

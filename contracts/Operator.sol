@@ -3,13 +3,13 @@ pragma solidity ^0.8.0;
 
 import "./interfaces/IOperator.sol";
 
+import "@openzeppelin/contracts/governance/IGovernor.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
 import "./interfaces/IKernel.sol";
 import "./interfaces/IOperatorFactory.sol";
 import "./interfaces/ISequencer.sol";
-import "./interfaces/external/IGovernorAlpha.sol";
 import "./libraries/access/Access.sol";
 import "./libraries/data/Slot.sol";
 import "./libraries/math/Cast.sol";
@@ -54,7 +54,8 @@ contract Operator is IOperator, Access, Lock, Multicall {
     function freeze(uint256 pid) external override {
         // governor is considered active on either `Pending` or `Active` states
         // `virtualize` should be frozen when governor is active
-        if (IGovernorAlpha(governor).state(pid) <= 1) {
+        IGovernor.ProposalState pstate = IGovernor(governor).state(pid);
+        if (pstate == IGovernor.ProposalState.Pending || pstate == IGovernor.ProposalState.Active) {
             frozen.frozen = true;
             frozen.id = pid;
         }
@@ -62,7 +63,8 @@ contract Operator is IOperator, Access, Lock, Multicall {
 
     /// @inheritdoc IOperatorFunctions
     function unfreeze() external override {
-        if (IGovernorAlpha(governor).state(frozen.id) > 1) {
+        IGovernor.ProposalState pstate = IGovernor(governor).state(frozen.id);
+        if (pstate != IGovernor.ProposalState.Pending && pstate != IGovernor.ProposalState.Active) {
             frozen.frozen = false;
             frozen.id = 0;
         }
@@ -82,7 +84,7 @@ contract Operator is IOperator, Access, Lock, Multicall {
 
     /// @inheritdoc IOperatorFunctions
     function realize(address to) external override lock {
-        Slot.Data memory slot = kernel.fetch(underlying, address(this));
+        Slot.Data memory slot = kernel.get(underlying, address(this));
         uint128 amount = Math.min(slot.x, slot.y).u128();
         kernel.modify(underlying, address(this), -amount.i128(), -amount.i128());
         sequencer.withdraw(to, amount);

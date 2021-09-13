@@ -10,7 +10,7 @@ import { expandTo18Decimals, MAX_UINT256 } from './shared/utils';
 const { createFixtureLoader } = waffle;
 const { BigNumber, provider } = ethers;
 
-describe('Sequencer', async () => {
+describe.skip('Sequencer', async () => {
   let loadFixture;  
   let wallet;
   let other1;

@@ -31,7 +31,7 @@ contract VToken is IToken, ERC20Permit {
 
     /// @inheritdoc IToken
     function mint(address to) external override returns (uint256 amount) {
-        amount = kernel.fetch(underlying, address(this)).y - _totalSupply.u128();
+        amount = kernel.get(underlying, address(this)).y - _totalSupply.u128();
         if (amount > 0) require(_mint(to, amount), "MINT");
     }
 

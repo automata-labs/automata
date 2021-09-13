@@ -13,15 +13,16 @@ contract Kernel is IKernel, Access, Multicall {
     mapping(bytes32 => Slot.Data) public override slots;
 
     /// @inheritdoc IKernelStateDerived
-    function get(bytes32 key) external view override returns (Slot.Data memory) {
+    function read(bytes32 key) external view override returns (Slot.Data memory) {
         return slots[key];
     }
 
     /// @inheritdoc IKernelFunctions
-    function set(bytes32 key, uint128 x, uint128 y) external override auth {
+    function write(bytes32 key, uint128 x, uint128 y) external override auth {
         slots[key].x = x;
         slots[key].y = y;
-        emit Set(msg.sender, key, x, y);
+
+        emit Written(msg.sender, key, x, y);
     }
 
     /// @inheritdoc IKernelFunctions

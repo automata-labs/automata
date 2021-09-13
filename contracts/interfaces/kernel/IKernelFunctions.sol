@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 interface IKernelFunctions {
     /// @notice Set a slot.
     /// @dev Requires authorization.
-    function set(bytes32 key, uint128 x, uint128 y) external;
+    function write(bytes32 key, uint128 x, uint128 y) external;
 
     /// @notice Updates a slot.
     /// @dev Requires authorization. Updates the slot by deltas and reverts on negative underflow.

@@ -5,5 +5,5 @@ import "../../libraries/data/Slot.sol";
 
 interface IKernelStateDerived {
     /// @notice Returns a slot.
-    function get(bytes32 key) external view returns (Slot.Data memory);
+    function read(bytes32 key) external view returns (Slot.Data memory);
 }
