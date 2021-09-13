@@ -9,12 +9,4 @@ library Delta {
             require((z = x + uint128(y)) >= x, "LA");
         }
     }
-
-    function addDelta112(uint112 x, int112 y) internal pure returns (uint112 z) {
-        if (y < 0) {
-            require((z = x - uint112(-y)) < x, "LS");
-        } else {
-            require((z = x + uint112(y)) >= x, "LA");
-        }
-    }
 }

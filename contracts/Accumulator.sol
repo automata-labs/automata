@@ -5,25 +5,30 @@ import "./interfaces/IAccumulator.sol";
 
 import "./interfaces/IKernel.sol";
 import "./libraries/data/State.sol";
+import "./libraries/helpers/Global.sol";
+import "./libraries/helpers/Shell.sol";
+import "./libraries/helpers/Unit.sol";
 import "./libraries/math/Cast.sol";
+import "./libraries/math/Delta.sol";
 import "./libraries/math/FixedPoint.sol";
 import "./libraries/math/FullMath.sol";
-import "./libraries/utils/Shell.sol";
 
 /// @title Accumulator
 contract Accumulator is IAccumulator {
-    using Cast for uint256;
+    using Global for mapping(address => State.Data);
+    using Global for State.Data;
+    using Cast for uint128;
     using Shell for IKernel;
-    using State for mapping(bytes32 => State.Data);
-    using State for State.Data;
+    using Unit for mapping(bytes32 => State.Data);
+    using Unit for State.Data;
 
     /// @inheritdoc IAccumulatorImmutables
     IKernel public immutable override kernel;
 
     /// @inheritdoc IAccumulatorState
-    mapping(address => State.Data) public override accumulators;
+    mapping(address => State.Data) public override globs;
     /// @inheritdoc IAccumulatorState
-    mapping(bytes32 => State.Data) public override states;
+    mapping(bytes32 => State.Data) public override units;
 
     constructor(IKernel kernel_) {
         kernel = kernel_;
@@ -31,43 +36,33 @@ contract Accumulator is IAccumulator {
 
     /// @inheritdoc IAccumulatorStateDerived
     function get(address underlying, address owner) external view override returns (State.Data memory) {
-        State.Data memory state = states.get(underlying, owner);
-        state.y += FullMath.mulDiv(state.x, accumulators[underlying].x128 - state.x128, FixedPoint.Q128).u128();
-        state.x128 = accumulators[underlying].x128;
-
-        return state;
+        return units.get(underlying, owner).normalize(globs[underlying].x128);
     }
 
     /// @inheritdoc IAccumulatorFunctions
     function grow(address underlying) external override returns (uint128 y) {
-        y = kernel.get(underlying, address(this)).y - accumulators[underlying].y;
+        y = kernel.get(underlying, address(this)).y - globs[underlying].y;
 
-        accumulators[underlying].y += y;
-        accumulators[underlying].x128 += FullMath.mulDiv(y, FixedPoint.Q128, accumulators[underlying].x);
+        uint256 x128a = FullMath.mulDiv(y, FixedPoint.Q128, globs[underlying].x);
+        globs.get(underlying).modify0(0, y.i128(), x128a);
 
         emit Grown(underlying, y);
     }
 
     /// @inheritdoc IAccumulatorFunctions
     function stake(address underlying, address to) external override returns (uint128 x) {
-        x = kernel.get(underlying, address(this)).x - accumulators[underlying].x;
+        x = kernel.get(underlying, address(this)).x - globs[underlying].x;
 
-        State.Data storage state = states.get(underlying, to);
-        state.y += FullMath.mulDiv(state.x, accumulators[underlying].x128 - state.x128, FixedPoint.Q128).u128();
-        state.x += x;
-        state.x128 = accumulators[underlying].x128;
-        accumulators[underlying].x += x;
+        globs.get(underlying)    .modify0(x.i128(), 0, 0);
+        units.get(underlying, to).modify1(x.i128(), 0, globs[underlying].x128);
 
         emit Staked(msg.sender, underlying, to, x);
     }
 
     /// @inheritdoc IAccumulatorFunctions
     function unstake(address underlying, address to, uint128 x) external override {
-        State.Data storage state = states.get(underlying, msg.sender);
-        state.y += FullMath.mulDiv(state.x, accumulators[underlying].x128 - state.x128, FixedPoint.Q128).u128();
-        state.x -= x;
-        state.x128 = accumulators[underlying].x128;
-        accumulators[underlying].x -= x;
+        globs.get(underlying)    .modify0(-x.i128(), 0, 0);
+        units.get(underlying, to).modify1(-x.i128(), 0, globs[underlying].x128);
 
         kernel.move(underlying, address(this), to, x, 0);
 
@@ -76,13 +71,11 @@ contract Accumulator is IAccumulator {
 
     /// @inheritdoc IAccumulatorFunctions
     function collect(address underlying, address to, uint128 y) external override returns (uint128 c) {
-        c = (y > accumulators[underlying].y) ? accumulators[underlying].y : y;
+        State.Data memory unit = units.get(underlying, to).normalize(globs[underlying].x128);
+        c = (y > unit.y) ? unit.y : y;
 
-        State.Data storage state = states.get(underlying, msg.sender);
-        state.y += FullMath.mulDiv(state.x, accumulators[underlying].x128 - state.x128, FixedPoint.Q128).u128();
-        state.y -= c;
-        state.x128 = accumulators[underlying].x128;
-        accumulators[underlying].y -= c;
+        globs.get(underlying)    .modify0(0, -c.i128(), 0);
+        units.get(underlying, to).modify1(0, -c.i128(), globs[underlying].x128);
 
         kernel.move(underlying, address(this), to, 0, c);
 

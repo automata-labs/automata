@@ -36,7 +36,7 @@ export async function operations(context: Context) {
   };
 
   const getState = async (underlying: string, owner: string) => {
-    return accumulator.states(ethers.utils.keccak256(abi.encode(['address', 'address'], [underlying, owner])));
+    return accumulator.units(ethers.utils.keccak256(abi.encode(['address', 'address'], [underlying, owner])));
   };
 
   return { virtualize, move, fetch, getState };
