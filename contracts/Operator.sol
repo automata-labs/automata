@@ -13,9 +13,9 @@ import "./interfaces/ISequencer.sol";
 import "./libraries/access/Access.sol";
 import "./libraries/data/Slot.sol";
 import "./libraries/math/Cast.sol";
+import "./libraries/helpers/Shell.sol";
 import "./libraries/utils/Lock.sol";
 import "./libraries/utils/Multicall.sol";
-import "./libraries/utils/Shell.sol";
 
 /// @title Operator
 contract Operator is IOperator, Access, Lock, Multicall {

@@ -87,7 +87,7 @@ describe('Accumulator', async () => {
       await accumulator.stake(token.address, other1.address);
       await accumulator.grow(token.address);
 
-      const x128 = (await accumulator.accumulators(token.address)).x128;
+      const x128 = (await accumulator.globs(token.address)).x128;
       expect((await accumulator.get(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
       expect((await accumulator.get(token.address, wallet.address)).y).to.equal(expandTo18Decimals(150));
       expect((await accumulator.get(token.address, wallet.address)).x128).to.equal(x128);
@@ -164,8 +164,8 @@ describe('Accumulator', async () => {
       await accumulator.stake(token.address, wallet.address);
       await accumulator.grow(token.address);
       await accumulator.collect(token.address, wallet.address, expandTo18Decimals(100));
-      expect((await accumulator.accumulators(token.address)).x).to.equal(expandTo18Decimals(100));
-      expect((await accumulator.accumulators(token.address)).y).to.equal(0);
+      expect((await accumulator.globs(token.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await accumulator.globs(token.address)).y).to.equal(0);
       expect((await accumulator.get(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
       expect((await accumulator.get(token.address, wallet.address)).y).to.equal(0);
       expect((await fetch(token.address, wallet.address)).y).to.equal(expandTo18Decimals(100));
@@ -176,8 +176,8 @@ describe('Accumulator', async () => {
       await accumulator.stake(token.address, wallet.address);
       await accumulator.grow(token.address);
       await accumulator.collect(token.address, wallet.address, expandTo18Decimals(75));
-      expect((await accumulator.accumulators(token.address)).x).to.equal(expandTo18Decimals(100));
-      expect((await accumulator.accumulators(token.address)).y).to.equal(expandTo18Decimals(25));
+      expect((await accumulator.globs(token.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await accumulator.globs(token.address)).y).to.equal(expandTo18Decimals(25));
       expect((await accumulator.get(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
       expect((await accumulator.get(token.address, wallet.address)).y).to.equal(expandTo18Decimals(25));
       expect((await fetch(token.address, wallet.address)).x).to.equal(0);

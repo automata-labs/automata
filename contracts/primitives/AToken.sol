@@ -6,8 +6,8 @@ import "../interfaces/IToken.sol";
 import "@yield-protocol/utils-v2/contracts/token/ERC20Permit.sol";
 
 import "../interfaces/IKernel.sol";
+import "../libraries/helpers/Shell.sol";
 import "../libraries/math/Cast.sol";
-import "../libraries/utils/Shell.sol";
 
 /// @title AToken
 contract AToken is IToken, ERC20Permit {
