@@ -2,11 +2,8 @@
 pragma solidity ^0.8.0;
 
 interface IOperatorFunctions {
-    /// @notice Freeze the operator.
-    function freeze(uint256 pid) external;
-
-    /// @notice Unfreeze the operator.
-    function unfreeze() external;
+    /// @notice Set a key-value.
+    function set(bytes32 key, bytes memory data) external;
 
     /// @notice Deposit tokens to use the protocol.
     /// @dev Requires the account to send tokens to the operator's sequencer.

@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
 import "./interfaces/IKernel.sol";
+import "./interfaces/IObserver.sol";
 import "./interfaces/IOperatorFactory.sol";
 import "./interfaces/ISequencer.sol";
 import "./libraries/access/Access.sol";
@@ -16,6 +17,7 @@ import "./libraries/math/Cast.sol";
 import "./libraries/helpers/Shell.sol";
 import "./libraries/utils/Lock.sol";
 import "./libraries/utils/Multicall.sol";
+import "./libraries/utils/RevertMsgExtractor.sol";
 
 /// @title Operator
 contract Operator is IOperator, Access, Lock, Multicall {
@@ -33,46 +35,28 @@ contract Operator is IOperator, Access, Lock, Multicall {
     /// @inheritdoc IOperatorState
     address public override governor;
 
-    struct Frozen {
-        uint256 id;
-        bool frozen;
-    }
     /// @inheritdoc IOperatorState
-    Frozen public override frozen;
+    address public override observer;
+    /// @inheritdoc IOperatorState
+    bool public override collapsed;
+    /// @inheritdoc IOperatorState
+    uint256 public override pid;
 
     constructor() {
         (kernel, underlying) = IOperatorFactory(msg.sender).parameters();
     }
 
-    function set(bytes32 key, bytes memory data) external auth {
+    /// @inheritdoc IOperatorFunctions
+    function set(bytes32 key, bytes memory data) external override auth {
         if (key == "sequencer") sequencer = abi.decode(data, (ISequencer));
         else if (key == "governor") governor = abi.decode(data, (address));
         else revert("!");
     }
 
     /// @inheritdoc IOperatorFunctions
-    function freeze(uint256 pid) external override {
-        // governor is considered active on either `Pending` or `Active` states
-        // `virtualize` should be frozen when governor is active
-        IGovernor.ProposalState pstate = IGovernor(governor).state(pid);
-        if (pstate == IGovernor.ProposalState.Pending || pstate == IGovernor.ProposalState.Active) {
-            frozen.frozen = true;
-            frozen.id = pid;
-        }
-    }
-
-    /// @inheritdoc IOperatorFunctions
-    function unfreeze() external override {
-        IGovernor.ProposalState pstate = IGovernor(governor).state(frozen.id);
-        if (pstate != IGovernor.ProposalState.Pending && pstate != IGovernor.ProposalState.Active) {
-            frozen.frozen = false;
-            frozen.id = 0;
-        }
-    }
-
-    /// @inheritdoc IOperatorFunctions
     function virtualize(address tox, address toy) external override lock {
-        require(frozen.frozen == false, "FROZEN");
+        _observe();
+        require(!collapsed, "CLPSE");
 
         uint256 amount = sequencer.deposit();
         // FIXME: Use multicall to save gas
@@ -100,5 +84,16 @@ contract Operator is IOperator, Access, Lock, Multicall {
     /// @inheritdoc IOperatorFunctions
     function pay(address token, address to, uint256 value) external override {
         TransferHelper.safeTransferFrom(token, msg.sender, to, value);
+    }
+
+    function _observe() internal {
+        if (observer != address(0)) {
+            bytes memory data = abi.encodeWithSelector(IObserver.observe.selector);
+            (bool success, bytes memory result) = observer.delegatecall(data);
+            if (!success) revert(RevertMsgExtractor.getRevertMsg(result));
+        } else {
+            collapsed = false;
+            pid = 0;
+        }
     }
 }

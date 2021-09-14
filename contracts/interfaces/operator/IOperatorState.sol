@@ -11,7 +11,12 @@ interface IOperatorState {
     /// @notice Returns the external governor address.
     function governor() external view returns (address);
 
-    /// @notice Returns the frozen state of the operator.
-    /// @dev If the operator is frozen, the `virtualize` function is disabled.
-    function frozen() external view returns (uint256, bool);
+    /// @notice Returns the pauser implementation address.
+    function observer() external view returns (address);
+
+    /// @notice Returns a boolean on whether the `virtualize` functions is paused or not.
+    function collapsed() external view returns (bool);
+
+    /// @notice Returns a non-zero proposal id if governor is active.
+    function pid() external view returns (uint256);
 }

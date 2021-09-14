@@ -7,6 +7,6 @@ interface IOperatorImmutables {
     /// @notice Returns the immutable kernel.
     function kernel() external view returns (IKernel);
 
-    /// @notice Returns the underlying token.
+    /// @notice Returns the immutable underlying token.
     function underlying() external view returns (address);
 }
