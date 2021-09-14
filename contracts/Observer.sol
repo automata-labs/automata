@@ -4,16 +4,14 @@ pragma solidity ^0.8.0;
 import "./interfaces/IObserver.sol";
 
 import "./interfaces/IKernel.sol";
-import "./interfaces/operator/IOperatorImmutables.sol";
-import "./interfaces/operator/IOperatorState.sol";
 import "./interfaces/external/IGovernorAlpha.sol";
 
 /// @title Observer
-contract Observer is IObserver, IOperatorImmutables, IOperatorState {
+contract Observer is IObserver {
     /// @inheritdoc IOperatorImmutables
-    function kernel() external pure override returns (IKernel) { revert("PROXY"); }
+    function kernel() external pure override returns (IKernel) { revert("IMMUTABLE"); }
     /// @inheritdoc IOperatorImmutables
-    function underlying() external pure override returns (address) { revert("PROXY"); }
+    function underlying() external pure override returns (address) { revert("IMMUTABLE"); }
 
     /// @inheritdoc IOperatorState
     ISequencer public override sequencer;
@@ -27,7 +25,7 @@ contract Observer is IObserver, IOperatorImmutables, IOperatorState {
     /// @inheritdoc IOperatorState
     uint256 public override pid;
 
-    /// @inheritdoc IObserver
+    /// @inheritdoc IObserverFunctions
     function observe() external override {
         uint256 count = IGovernorAlpha(governor).proposalCount();
         uint256 state = IGovernorAlpha(governor).state(count);

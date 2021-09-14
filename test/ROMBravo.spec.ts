@@ -1,14 +1,14 @@
 import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
-import { Accumulator, EmulationBravo, ERC20CompLike, GovernorBravoMock, Kernel, Operator, OperatorFactory, Sequencer, SequencerFactory, Timelock } from '../typechain';
+import { Accumulator, ROMBravo, ERC20CompLike, GovernorBravoMock, Kernel, Operator, OperatorFactory, Sequencer, SequencerFactory, Timelock } from '../typechain';
 import { operations } from './shared/functions';
 import { bytes32, expandTo18Decimals, MAX_UINT256, mineBlocks, ROOT, TIMELOCK_DELAY } from './shared/utils';
 
 const { Contract } = ethers;
 const { createFixtureLoader, provider } = waffle;
 
-describe('EmulationBravo', async () => {
+describe('ROMBravo', async () => {
   let abi = new ethers.utils.AbiCoder();
   let loadFixture;
   let wallet;
@@ -22,8 +22,8 @@ describe('EmulationBravo', async () => {
   let sequencer: Sequencer;
   let operator: Operator;
   let accumulator: Accumulator;
-  let emulator: EmulationBravo;
-  let emulation: EmulationBravo;
+  let emulator: ROMBravo;
+  let rom: ROMBravo;
 
   let timelock: Timelock;
   let governor: GovernorBravoMock;
@@ -36,7 +36,7 @@ describe('EmulationBravo', async () => {
     const SequencerFactory = await ethers.getContractFactory('SequencerFactory');
     const OperatorFactory = await ethers.getContractFactory('OperatorFactory');
     const Accumulator = await ethers.getContractFactory('Accumulator');
-    const EmulationBravo = await ethers.getContractFactory('EmulationBravo');
+    const ROMBravo = await ethers.getContractFactory('ROMBravo');
     const Emulator = await ethers.getContractFactory('Emulator');
 
     const Timelock = await ethers.getContractFactory('Timelock');
@@ -59,12 +59,14 @@ describe('EmulationBravo', async () => {
     sequencerFactory = (await SequencerFactory.deploy()) as SequencerFactory;
     operatorFactory = (await OperatorFactory.deploy(kernel.address)) as OperatorFactory;
     accumulator = (await Accumulator.deploy(kernel.address)) as Accumulator;
-    emulation = (await EmulationBravo.deploy()) as EmulationBravo;
+    rom = (await ROMBravo.deploy()) as ROMBravo;
     const emulatorAddress = (await Emulator.deploy(
-      emulation.address,
-      emulation.interface.encodeFunctionData('initialize'),
+      rom.address,
+      rom.interface.encodeFunctionData('initialize'),
+      accumulator.address,
+      token.address
     )).address;
-    emulator = (await ethers.getContractAt('EmulationBravo', emulatorAddress)) as EmulationBravo;
+    emulator = (await ethers.getContractAt('ROMBravo', emulatorAddress)) as ROMBravo;
 
     await sequencerFactory.create(token.address);
     sequencer = (await ethers.getContractAt('Sequencer', await sequencerFactory.compute(token.address))) as Sequencer;
@@ -82,12 +84,9 @@ describe('EmulationBravo', async () => {
     await sequencer.clones(10);
     await operator.set(bytes32("sequencer"), abi.encode(['address'], [sequencer.address]));
     await operator.set(bytes32("governor"), abi.encode(['address'], [governor.address]));
-    await emulator.register(bytes32("underlying"), token.address);
-    await emulator.register(bytes32("accumulator"), accumulator.address);
-    await emulator.register(bytes32("sequencer"), sequencer.address);
-    await emulator.register(bytes32("governor"), governor.address);
-    await emulator.scale(bytes32("decimals"), 18);
-    await emulator.scale(bytes32("period"), 80);
+    await emulator.set(emulator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
+    await emulator.set(emulator.interface.getSighash('governor'), abi.encode(['address'], [governor.address]));
+    await emulator.set(emulator.interface.getSighash('period'), abi.encode(['uint32'], [80]));
 
     await governor['_initiate()']();
 

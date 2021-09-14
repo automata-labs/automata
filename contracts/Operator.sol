@@ -88,7 +88,7 @@ contract Operator is IOperator, Access, Lock, Multicall {
 
     function _observe() internal {
         if (observer != address(0)) {
-            bytes memory data = abi.encodeWithSelector(IObserver.observe.selector);
+            bytes memory data = abi.encodeWithSelector(IObserverFunctions.observe.selector);
             (bool success, bytes memory result) = observer.delegatecall(data);
             if (!success) revert(RevertMsgExtractor.getRevertMsg(result));
         } else {
