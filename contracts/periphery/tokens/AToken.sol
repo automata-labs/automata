@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "../interfaces/IToken.sol";
+import "../../interfaces/IToken.sol";
 
 import "@yield-protocol/utils-v2/contracts/token/ERC20Permit.sol";
 
-import "../interfaces/IKernel.sol";
-import "../libraries/helpers/Shell.sol";
-import "../libraries/math/Cast.sol";
+import "../../interfaces/IKernel.sol";
+import "../../libraries/helpers/Shell.sol";
+import "../../libraries/math/Cast.sol";
 
-/// @title VToken
-contract VToken is IToken, ERC20Permit {
+/// @title AToken
+contract AToken is IToken, ERC20Permit {
     using Cast for uint256;
     using Shell for IKernel;
 
@@ -31,7 +31,7 @@ contract VToken is IToken, ERC20Permit {
 
     /// @inheritdoc IToken
     function mint(address to) external override returns (uint256 amount) {
-        amount = kernel.get(underlying, address(this)).y - _totalSupply.u128();
+        amount = kernel.get(underlying, address(this)).x - _totalSupply.u128();
         if (amount > 0) require(_mint(to, amount), "MINT");
     }
 
@@ -40,7 +40,7 @@ contract VToken is IToken, ERC20Permit {
         amount = _balanceOf[address(this)];
         if (amount > 0) {
             require(_burn(address(this), amount), "BURN");
-            kernel.move(underlying, address(this), to, 0, amount.u128());
+            kernel.move(underlying, address(this), to, amount.u128(), 0);
         }
     }
 }
