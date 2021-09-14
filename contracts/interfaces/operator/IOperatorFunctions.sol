@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 interface IOperatorFunctions {
     /// @notice Set a key-value.
-    function set(bytes32 key, bytes memory data) external;
+    function set(bytes4 selector, bytes memory data) external;
 
     /// @notice Deposit tokens to use the protocol.
     /// @dev Requires the account to send tokens to the operator's sequencer.
