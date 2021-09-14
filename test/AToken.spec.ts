@@ -7,7 +7,7 @@ import { SequencerFactory } from '../typechain/OperatorFactory.d.ts';
 // @ts-ignore
 import { OperatorFactory } from '../typechain/OperatorFactory.d.ts';
 import { operations } from './shared/functions';
-import { bytes32, expandTo18Decimals, MAX_UINT256, ROOT } from './shared/utils';
+import { expandTo18Decimals, MAX_UINT256, ROOT } from './shared/utils';
 
 const { createFixtureLoader, provider } = waffle;
 
@@ -59,7 +59,7 @@ describe('AToken', async () => {
 
     await token.approve(sequencer.address, MAX_UINT256);
     await sequencer.clones(10);
-    await operator.set(bytes32('sequencer'), abi.encode(['address'], [sequencer.address]));
+    await operator.set(operator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
 
     ({ virtualize, move, fetch } = await operations({ token, kernel, operator }));
   };

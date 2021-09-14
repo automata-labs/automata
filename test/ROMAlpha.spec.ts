@@ -3,7 +3,7 @@ import { ethers, waffle } from 'hardhat';
 
 import { Accumulator, ROMAlpha, ERC20CompLike, GovernorAlphaMock, Kernel, Operator, OperatorFactory, Sequencer, SequencerFactory, Timelock } from '../typechain';
 import { operations } from './shared/functions';
-import { bytes32, expandTo18Decimals, MAX_UINT256, mineBlocks, ROOT, TIMELOCK_DELAY } from './shared/utils';
+import { expandTo18Decimals, MAX_UINT256, mineBlocks, ROOT, TIMELOCK_DELAY } from './shared/utils';
 
 const { Contract } = ethers;
 const { createFixtureLoader, provider } = waffle;
@@ -75,8 +75,8 @@ describe('ROMAlpha', async () => {
     
     await token.approve(sequencer.address, MAX_UINT256);
     await sequencer.clones(10);
-    await operator.set(bytes32("sequencer"), abi.encode(['address'], [sequencer.address]));
-    await operator.set(bytes32("governor"), abi.encode(['address'], [governor.address]));
+    await operator.set(operator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
+    await operator.set(operator.interface.getSighash('governor'), abi.encode(['address'], [governor.address]));
     await emulator.set(emulator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
     await emulator.set(emulator.interface.getSighash('governor'), abi.encode(['address'], [governor.address]));
     await emulator.set(emulator.interface.getSighash('period'), abi.encode(['uint32'], [80]));

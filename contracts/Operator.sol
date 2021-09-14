@@ -47,9 +47,10 @@ contract Operator is IOperator, Access, Lock, Multicall {
     }
 
     /// @inheritdoc IOperatorFunctions
-    function set(bytes32 key, bytes memory data) external override auth {
-        if (key == "sequencer") sequencer = abi.decode(data, (ISequencer));
-        else if (key == "governor") governor = abi.decode(data, (address));
+    function set(bytes4 selector, bytes memory data) external override auth {
+        if (selector == IOperatorState.sequencer.selector) sequencer = abi.decode(data, (ISequencer));
+        else if (selector == IOperatorState.governor.selector) governor = abi.decode(data, (address));
+        else if (selector == IOperatorState.observer.selector) observer = abi.decode(data, (address));
         else revert("!");
     }
 

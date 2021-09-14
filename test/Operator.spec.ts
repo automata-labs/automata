@@ -60,7 +60,10 @@ describe('Operator', async () => {
 
     await kernel.grantRole(ROOT, operator.address);
     await sequencer.grantRole(ROOT, operator.address);
-    await operator.set(bytes32('sequencer'), abi.encode(['address'], [sequencer.address]));
+    await operator.set(
+      operator.interface.getSighash('sequencer'),
+      abi.encode(['address'], [sequencer.address])
+    );
   };
 
   const realizeFixture = async () => {
@@ -71,7 +74,10 @@ describe('Operator', async () => {
 
     await kernel.grantRole(ROOT, operator.address);
     await sequencer.grantRole(ROOT, operator.address);
-    await operator.set(bytes32('sequencer'), abi.encode(['address'], [sequencer.address]));
+    await operator.set(
+      operator.interface.getSighash('sequencer'),
+      abi.encode(['address'], [sequencer.address])
+    );
 
     await token.approve(operator.address, MAX_UINT256);
     await operator.multicall([
@@ -91,22 +97,37 @@ describe('Operator', async () => {
     });
 
     it('should set sequencer', async () => {
-      await operator.set(bytes32('sequencer'), abi.encode(['address'], [sequencer.address]));
+      await operator.set(
+        operator.interface.getSighash('sequencer'),
+        abi.encode(['address'], [sequencer.address])
+      );
       expect(await operator.sequencer()).to.equal(sequencer.address);
     });
     it('should change sequencer', async () => {
-      await operator.set(bytes32('sequencer'), abi.encode(['address'], [sequencer.address]));
+      await operator.set(
+        operator.interface.getSighash('sequencer'),
+        abi.encode(['address'], [sequencer.address])
+      );
       expect(await operator.sequencer()).to.equal(sequencer.address);
-      await operator.set(bytes32('sequencer'), abi.encode(['address'], [wallet.address]));
+      await operator.set(
+        operator.interface.getSighash('sequencer'),
+        abi.encode(['address'], [wallet.address])
+      );
       expect(await operator.sequencer()).to.equal(wallet.address);
     });
     it('should set non-sequencer contract', async () => {
-      await operator.set(bytes32('sequencer'), abi.encode(['address'], [wallet.address]));
+      await operator.set(
+        operator.interface.getSighash('sequencer'),
+        abi.encode(['address'], [wallet.address])
+      );
       expect(await operator.sequencer()).to.equal(wallet.address);
     });
     it('should revert when no role', async () => {
       await expect(
-        operator.connect(other1).set(bytes32('sequencer'), abi.encode(['address'], [sequencer.address]))
+        operator.connect(other1).set(
+          operator.interface.getSighash('sequencer'),
+          abi.encode(['address'], [sequencer.address])
+        )
       )
         .to.be.revertedWith('Access denied');
     });

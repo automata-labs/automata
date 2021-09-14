@@ -3,7 +3,7 @@ import { ethers, waffle } from 'hardhat';
 
 import { Accumulator, ERC20CompLike, Kernel, Operator, OperatorFactory, Sequencer, SequencerFactory } from '../typechain';
 import { operations } from './shared/functions';
-import { bytes32, expandTo18Decimals, MAX_UINT256, Q128, ROOT } from './shared/utils';
+import { expandTo18Decimals, MAX_UINT256, Q128, ROOT } from './shared/utils';
 
 const { BigNumber } = ethers;
 const { createFixtureLoader, provider } = waffle;
@@ -55,7 +55,7 @@ describe('Accumulator', async () => {
 
     await token.approve(sequencer.address, MAX_UINT256);
     await sequencer.clones(10);
-    await operator.set(bytes32('sequencer'), abi.encode(['address'], [sequencer.address]));
+    await operator.set(operator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
 
     ({ virtualize, fetch, getState } = await operations({ token, kernel, operator, accumulator }));
   };

@@ -121,7 +121,7 @@ contract ROMAlpha is IROM, ERC1967Implementation, Initializable, Access {
         address[] memory targets  = new address[](1);
         bytes[] memory data = new bytes[](1);
         targets[0] = governor;
-        data[0] = abi.encodeWithSignature("castVote(uint256,bool)", pid, support);
+        data[0] = abi.encodeWithSelector(IGovernorAlpha.castVote.selector, pid, support);
 
         this.sequencer().execute(cursor, targets, data);
     }
