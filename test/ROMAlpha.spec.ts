@@ -1,14 +1,14 @@
 import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
-import { Accumulator, EmulationAlpha, Emulator, ERC20CompLike, GovernorAlphaMock, Kernel, Operator, OperatorFactory, Sequencer, SequencerFactory, Timelock } from '../typechain';
+import { Accumulator, ROMAlpha, ERC20CompLike, GovernorAlphaMock, Kernel, Operator, OperatorFactory, Sequencer, SequencerFactory, Timelock } from '../typechain';
 import { operations } from './shared/functions';
 import { bytes32, expandTo18Decimals, MAX_UINT256, mineBlocks, ROOT, TIMELOCK_DELAY } from './shared/utils';
 
 const { Contract } = ethers;
 const { createFixtureLoader, provider } = waffle;
 
-describe('EmulationAlpha', async () => {
+describe('ROMAlpha', async () => {
   let abi = new ethers.utils.AbiCoder();
   let loadFixture;
   let wallet;
@@ -22,8 +22,8 @@ describe('EmulationAlpha', async () => {
   let sequencer: Sequencer;
   let operator: Operator;
   let accumulator: Accumulator;
-  let emulator: EmulationAlpha;
-  let emulation: EmulationAlpha;
+  let emulator: ROMAlpha;
+  let rom: ROMAlpha;
 
   let timelock: Timelock;
   let governor: GovernorAlphaMock;
@@ -36,7 +36,7 @@ describe('EmulationAlpha', async () => {
     const SequencerFactory = await ethers.getContractFactory('SequencerFactory');
     const OperatorFactory = await ethers.getContractFactory('OperatorFactory');
     const Accumulator = await ethers.getContractFactory('Accumulator');
-    const EmulationAlpha = await ethers.getContractFactory('EmulationAlpha');
+    const ROMAlpha = await ethers.getContractFactory('ROMAlpha');
     const Emulator = await ethers.getContractFactory('Emulator');
 
     const Timelock = await ethers.getContractFactory('Timelock');
@@ -52,12 +52,14 @@ describe('EmulationAlpha', async () => {
     sequencerFactory = (await SequencerFactory.deploy()) as SequencerFactory;
     operatorFactory = (await OperatorFactory.deploy(kernel.address)) as OperatorFactory;
     accumulator = (await Accumulator.deploy(kernel.address)) as Accumulator;
-    emulation = (await EmulationAlpha.deploy()) as EmulationAlpha;
+    rom = (await ROMAlpha.deploy()) as ROMAlpha;
     const emulatorAddress = (await Emulator.deploy(
-      emulation.address,
-      emulation.interface.encodeFunctionData('initialize'),
+      rom.address,
+      rom.interface.encodeFunctionData('initialize'),
+      accumulator.address,
+      token.address
     )).address;
-    emulator = (await ethers.getContractAt('EmulationAlpha', emulatorAddress)) as EmulationAlpha;
+    emulator = (await ethers.getContractAt('ROMAlpha', emulatorAddress)) as ROMAlpha;
 
     await sequencerFactory.create(token.address);
     sequencer = (await ethers.getContractAt('Sequencer', await sequencerFactory.compute(token.address))) as Sequencer;
@@ -70,17 +72,14 @@ describe('EmulationAlpha', async () => {
     await kernel.grantRole(ROOT, accumulator.address);
     await sequencer.grantRole(ROOT, operator.address);
     await sequencer.grantRole(ROOT, emulator.address);
-
+    
     await token.approve(sequencer.address, MAX_UINT256);
     await sequencer.clones(10);
     await operator.set(bytes32("sequencer"), abi.encode(['address'], [sequencer.address]));
     await operator.set(bytes32("governor"), abi.encode(['address'], [governor.address]));
-    await emulator.register(bytes32("underlying"), token.address);
-    await emulator.register(bytes32("accumulator"), accumulator.address);
-    await emulator.register(bytes32("sequencer"), sequencer.address);
-    await emulator.register(bytes32("governor"), governor.address);
-    await emulator.scale(bytes32("decimals"), 18);
-    await emulator.scale(bytes32("period"), 80);
+    await emulator.set(emulator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
+    await emulator.set(emulator.interface.getSighash('governor'), abi.encode(['address'], [governor.address]));
+    await emulator.set(emulator.interface.getSighash('period'), abi.encode(['uint32'], [80]));
 
     ({ virtualize } = await operations({ token, kernel, operator, accumulator }));
   };

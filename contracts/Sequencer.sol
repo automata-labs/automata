@@ -6,11 +6,13 @@ import "./interfaces/ISequencer.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
+import "@yield-protocol/utils-v2/contracts/token/IERC20.sol";
 import "@yield-protocol/utils-v2/contracts/token/IERC20Metadata.sol";
 
 import "./Shard.sol";
 import "./interfaces/ISequencerFactory.sol";
 import "./interfaces/IShard.sol";
+import "./interfaces/external/IERC20CompLike.sol";
 import "./libraries/access/Access.sol";
 import "./libraries/math/Cursor.sol";
 
@@ -132,14 +134,14 @@ contract Sequencer is ISequencer, Access {
             if (balance != 0) {
                 if (stack > balance) {
                     targets[0] = underlying;
-                    data[0] = abi.encodeWithSignature("transfer(address,uint256)", to, balance);
+                    data[0] = abi.encodeWithSelector(IERC20.transfer.selector, to, balance);
 
                     IShard(shard).execute(targets, data);
                     liquidityNext -= balance;
                     stack -= balance;
                 } else {
                     targets[0] = underlying;
-                    data[0] = abi.encodeWithSignature("transfer(address,uint256)", to, stack);
+                    data[0] = abi.encodeWithSelector(IERC20.transfer.selector, to, stack);
 
                     IShard(shard).execute(targets, data);
                     liquidityNext -= stack;
@@ -181,7 +183,7 @@ contract Sequencer is ISequencer, Access {
         // delegate to self after cloning shard.
         // will fail if `underlying` is not a `CompLike` token.
         targets[0] = underlying;
-        data[0] = abi.encodeWithSignature("delegate(address)", cloned);
+        data[0] = abi.encodeWithSelector(IERC20CompLike.delegate.selector, cloned);
 
         TransferHelper.safeTransferFrom(underlying, msg.sender, cloned, 1);
         IShard(cloned).initialize();
