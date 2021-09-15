@@ -9,7 +9,7 @@ import "./interfaces/IOperator.sol";
 import "./libraries/access/Access.sol";
 
 /// @title OperatorFactory
-contract OperatorFactory is IOperatorFactory {
+contract OperatorFactory is IOperatorFactory, Access {
     bytes32 public constant OPERATOR_BYTECODE_HASH = keccak256(type(Operator).creationCode);
 
     /// @inheritdoc IOperatorFactoryImmutables
@@ -46,7 +46,7 @@ contract OperatorFactory is IOperatorFactory {
     }
 
     /// @inheritdoc IOperatorFactoryFunctions
-    function create(address token) external override {
+    function create(address token) external override auth {
         parameters = Parameters({ kernel: kernel, token: token });
         Access operator = Access(new Operator{salt: keccak256(abi.encode(token))}());
         operator.grantRole(operator.ROOT(), msg.sender);

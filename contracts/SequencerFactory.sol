@@ -9,7 +9,7 @@ import "./interfaces/ISequencer.sol";
 import "./libraries/access/Access.sol";
 
 /// @title SequencerFactory
-contract SequencerFactory is ISequencerFactory {
+contract SequencerFactory is ISequencerFactory, Access {
     bytes32 public constant SEQUENCER_BYTECODE_HASH = keccak256(type(Sequencer).creationCode);
 
     struct Parameters {
@@ -38,7 +38,7 @@ contract SequencerFactory is ISequencerFactory {
     }
 
     /// @inheritdoc ISequencerFactoryFunctions
-    function create(address token) external override {
+    function create(address token) external override auth {
         parameters = Parameters({ token: token });
         Access sequencer = Access(new Sequencer{salt: keccak256(abi.encode(token))}());
         sequencer.grantRole(sequencer.ROOT(), msg.sender);
