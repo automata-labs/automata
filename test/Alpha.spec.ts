@@ -1,14 +1,14 @@
 import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
-import { Accumulator, ROMAlpha, ERC20CompLike, GovernorAlphaMock, Kernel, Operator, OperatorFactory, Sequencer, SequencerFactory, Timelock } from '../typechain';
+import { Accumulator, Alpha, ERC20CompLike, GovernorAlphaMock, Kernel, Linear, Operator, OperatorFactory, Sequencer, SequencerFactory, Timelock } from '../typechain';
 import { operations } from './shared/functions';
 import { expandTo18Decimals, MAX_UINT256, mineBlocks, ROOT, TIMELOCK_DELAY } from './shared/utils';
 
 const { Contract } = ethers;
 const { createFixtureLoader, provider } = waffle;
 
-describe('ROMAlpha', async () => {
+describe('Alpha', async () => {
   let abi = new ethers.utils.AbiCoder();
   let loadFixture;
   let wallet;
@@ -22,8 +22,10 @@ describe('ROMAlpha', async () => {
   let sequencer: Sequencer;
   let operator: Operator;
   let accumulator: Accumulator;
-  let emulator: ROMAlpha;
-  let rom: ROMAlpha;
+
+  let linear: Linear;
+  let emulator: Alpha;
+  let rom: Alpha;
 
   let timelock: Timelock;
   let governor: GovernorAlphaMock;
@@ -36,7 +38,8 @@ describe('ROMAlpha', async () => {
     const SequencerFactory = await ethers.getContractFactory('SequencerFactory');
     const OperatorFactory = await ethers.getContractFactory('OperatorFactory');
     const Accumulator = await ethers.getContractFactory('Accumulator');
-    const ROMAlpha = await ethers.getContractFactory('ROMAlpha');
+    const Linear = await ethers.getContractFactory('Linear');
+    const Alpha = await ethers.getContractFactory('Alpha');
     const Emulator = await ethers.getContractFactory('Emulator');
 
     const Timelock = await ethers.getContractFactory('Timelock');
@@ -52,14 +55,11 @@ describe('ROMAlpha', async () => {
     sequencerFactory = (await SequencerFactory.deploy()) as SequencerFactory;
     operatorFactory = (await OperatorFactory.deploy(kernel.address)) as OperatorFactory;
     accumulator = (await Accumulator.deploy(kernel.address)) as Accumulator;
-    rom = (await ROMAlpha.deploy()) as ROMAlpha;
-    const emulatorAddress = (await Emulator.deploy(
-      rom.address,
-      rom.interface.encodeFunctionData('initialize'),
-      accumulator.address,
-      token.address
-    )).address;
-    emulator = (await ethers.getContractAt('ROMAlpha', emulatorAddress)) as ROMAlpha;
+
+    linear = (await Linear.deploy()) as Linear;
+    rom = (await Alpha.deploy()) as Alpha;
+    const emulatorAddress = (await Emulator.deploy(rom.address, [], token.address)).address;
+    emulator = (await ethers.getContractAt('Alpha', emulatorAddress)) as Alpha;
 
     await sequencerFactory.create(token.address);
     sequencer = (await ethers.getContractAt('Sequencer', await sequencerFactory.compute(token.address))) as Sequencer;
@@ -77,9 +77,11 @@ describe('ROMAlpha', async () => {
     await sequencer.clones(10);
     await operator.set(operator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
     await operator.set(operator.interface.getSighash('governor'), abi.encode(['address'], [governor.address]));
+    await emulator.set(emulator.interface.getSighash('accumulator'), abi.encode(['address'], [accumulator.address]));
     await emulator.set(emulator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
     await emulator.set(emulator.interface.getSighash('governor'), abi.encode(['address'], [governor.address]));
     await emulator.set(emulator.interface.getSighash('period'), abi.encode(['uint32'], [80]));
+    await emulator.set(emulator.interface.getSighash('computer'), abi.encode(['address'], [linear.address]));
 
     ({ virtualize } = await operations({ token, kernel, operator, accumulator }));
   };
@@ -113,17 +115,17 @@ describe('ROMAlpha', async () => {
       await propose();
       
       await operator.transfer(accumulator.address, 0, expandTo18Decimals(100));
-      await emulator.sum(1, true);
+      await emulator.choice(1, 1);
       expect((await emulator.votes(1)).x).to.equal(expandTo18Decimals(100));
       expect((await emulator.votes(1)).y).to.equal(0);
     });
     it('should revert when nothing staked', async () => {
-      await expect(emulator.sum(1, true)).to.be.reverted;
+      await expect(emulator.choice(1, 1)).to.be.reverted;
     })
     it('should revert when proposal is not created', async () => {
       await virtualize(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
       await accumulator.stake(token.address, wallet.address);
-      await expect(emulator.sum(1, true)).to.be.revertedWith('E');
+      await expect(emulator.choice(1, 1)).to.be.revertedWith('E');
     });
     it('should revert when summing zero', async () => {
       await virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
@@ -132,7 +134,7 @@ describe('ROMAlpha', async () => {
       
       await propose();
       
-      await expect(emulator.sum(1, true)).to.be.revertedWith('0');
+      await expect(emulator.choice(1, 1)).to.be.revertedWith('0');
     });
   });
 
@@ -141,24 +143,24 @@ describe('ROMAlpha', async () => {
       await virtualize(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
       await accumulator.stake(token.address, wallet.address);
       await propose();
-      await emulator.sum(1, true);
+      await emulator.choice(1, 1);
 
       await mineBlocks(
         provider,
-        (await emulator.votingPeriod(1))[0].toNumber() - (await provider.getBlockNumber())
+        (await emulator.timeline(1))[2].toNumber() - (await provider.getBlockNumber())
       );
 
-      await expect(emulator.vote(1, 10)).to.be.revertedWith('F0');
-      await expect(emulator.vote(1, 9)).to.be.revertedWith('F0');
-      await expect(emulator.vote(1, 8)).to.be.revertedWith('F0');
-      await expect(emulator.vote(1, 7)).to.be.revertedWith('F0');
-      await emulator.vote(1, 6);
-      await emulator.vote(1, 5);
-      await emulator.vote(1, 4);
-      await emulator.vote(1, 3);
-      await emulator.vote(1, 2);
-      await emulator.vote(1, 1);
-      await emulator.vote(1, 0);
+      await expect(emulator.trigger(1, 10)).to.be.revertedWith('F0');
+      await expect(emulator.trigger(1, 9)).to.be.revertedWith('F0');
+      await expect(emulator.trigger(1, 8)).to.be.revertedWith('F0');
+      await expect(emulator.trigger(1, 7)).to.be.revertedWith('F0');
+      await emulator.trigger(1, 6);
+      await emulator.trigger(1, 5);
+      await emulator.trigger(1, 4);
+      await emulator.trigger(1, 3);
+      await emulator.trigger(1, 2);
+      await emulator.trigger(1, 1);
+      await emulator.trigger(1, 0);
     });
     it('should vote with all (75)', async () => {
       // vote with 75, with excess of 12.
@@ -166,71 +168,71 @@ describe('ROMAlpha', async () => {
       await virtualize(wallet, accumulator.address, accumulator.address, expandTo18Decimals(75));
       await accumulator.stake(token.address, wallet.address);
       await propose();
-      await emulator.sum(1, true);
+      await emulator.choice(1, 1);
 
       await mineBlocks(
         provider,
-        (await emulator.votingPeriod(1))[0].toNumber() - (await provider.getBlockNumber())
+        (await emulator.timeline(1))[2].toNumber() - (await provider.getBlockNumber())
       );
 
-      await expect(emulator.vote(1, 10)).to.be.revertedWith('F0');
-      await expect(emulator.vote(1, 9)).to.be.revertedWith('F0');
-      await expect(emulator.vote(1, 8)).to.be.revertedWith('F0');
-      await expect(emulator.vote(1, 7)).to.be.revertedWith('F0');
-      await emulator.vote(1, 6);
-      await emulator.vote(1, 5);
-      await emulator.vote(1, 4);
-      await emulator.vote(1, 3);
-      await emulator.vote(1, 2);
-      await emulator.vote(1, 1);
-      await emulator.vote(1, 0);
+      await expect(emulator.trigger(1, 10)).to.be.revertedWith('F0');
+      await expect(emulator.trigger(1, 9)).to.be.revertedWith('F0');
+      await expect(emulator.trigger(1, 8)).to.be.revertedWith('F0');
+      await expect(emulator.trigger(1, 7)).to.be.revertedWith('F0');
+      await emulator.trigger(1, 6);
+      await emulator.trigger(1, 5);
+      await emulator.trigger(1, 4);
+      await emulator.trigger(1, 3);
+      await emulator.trigger(1, 2);
+      await emulator.trigger(1, 1);
+      await emulator.trigger(1, 0);
     });
     it('should vote with all (38)', async () => {
       await virtualize(wallet, accumulator.address, accumulator.address, expandTo18Decimals(38));
       await accumulator.stake(token.address, wallet.address);
       await propose();
-      await emulator.sum(1, true);
+      await emulator.choice(1, 1);
 
       await mineBlocks(
         provider,
-        (await emulator.votingPeriod(1))[0].toNumber() - (await provider.getBlockNumber())
+        (await emulator.timeline(1))[2].toNumber() - (await provider.getBlockNumber())
       );
 
-      await expect(emulator.vote(1, 10)).to.be.revertedWith('F0');
-      await expect(emulator.vote(1, 9)).to.be.revertedWith('F0');
-      await expect(emulator.vote(1, 8)).to.be.revertedWith('F0');
-      await expect(emulator.vote(1, 7)).to.be.revertedWith('F0');
-      await expect(emulator.vote(1, 6)).to.be.revertedWith('F0');
-      await emulator.vote(1, 5);
-      await emulator.vote(1, 4);
-      await emulator.vote(1, 3);
-      await emulator.vote(1, 2);
-      await emulator.vote(1, 1);
-      await emulator.vote(1, 0);
+      await expect(emulator.trigger(1, 10)).to.be.revertedWith('F0');
+      await expect(emulator.trigger(1, 9)).to.be.revertedWith('F0');
+      await expect(emulator.trigger(1, 8)).to.be.revertedWith('F0');
+      await expect(emulator.trigger(1, 7)).to.be.revertedWith('F0');
+      await expect(emulator.trigger(1, 6)).to.be.revertedWith('F0');
+      await emulator.trigger(1, 5);
+      await emulator.trigger(1, 4);
+      await emulator.trigger(1, 3);
+      await emulator.trigger(1, 2);
+      await emulator.trigger(1, 1);
+      await emulator.trigger(1, 0);
     });
     it('should vote with 75 out of 100', async () => {
       await virtualize(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
       await accumulator.stake(token.address, wallet.address);
       await propose();
       await operator.transfer(accumulator.address, 0, expandTo18Decimals(75));
-      await emulator.sum(1, true);
+      await emulator.choice(1, 1);
 
       await mineBlocks(
         provider,
-        (await emulator.votingPeriod(1))[0].toNumber() - (await provider.getBlockNumber())
+        (await emulator.timeline(1))[2].toNumber() - (await provider.getBlockNumber())
       );
 
-      await expect(emulator.vote(1, 10)).to.be.revertedWith('F0');
-      await expect(emulator.vote(1, 9)).to.be.revertedWith('F0');
-      await expect(emulator.vote(1, 8)).to.be.revertedWith('F0');
-      await expect(emulator.vote(1, 7)).to.be.revertedWith('F0');
-      await emulator.vote(1, 6);
-      await emulator.vote(1, 5);
-      await expect(emulator.vote(1, 4)).to.be.revertedWith('F0');
-      await expect(emulator.vote(1, 3)).to.be.revertedWith('F0');
-      await emulator.vote(1, 2)
-      await emulator.vote(1, 1);
-      await expect(emulator.vote(1, 0)).to.be.revertedWith('F0');
+      await expect(emulator.trigger(1, 10)).to.be.revertedWith('F0');
+      await expect(emulator.trigger(1, 9)).to.be.revertedWith('F0');
+      await expect(emulator.trigger(1, 8)).to.be.revertedWith('F0');
+      await expect(emulator.trigger(1, 7)).to.be.revertedWith('F0');
+      await emulator.trigger(1, 6);
+      await emulator.trigger(1, 5);
+      await expect(emulator.trigger(1, 4)).to.be.revertedWith('F0');
+      await expect(emulator.trigger(1, 3)).to.be.revertedWith('F0');
+      await emulator.trigger(1, 2)
+      await emulator.trigger(1, 1);
+      await expect(emulator.trigger(1, 0)).to.be.revertedWith('F0');
     });
   });
 });

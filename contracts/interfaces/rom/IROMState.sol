@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "../ISequencer.sol";
-
 interface IROMState {
+    /// @notice Returns the accumulator.
+    function accumulator() external view returns (address);
+
     /// @notice Returns the sequencer.
-    function sequencer() external view returns (ISequencer);
+    function sequencer() external view returns (address);
 
     /// @notice Returns external governor contract.
     function governor() external view returns (address);
@@ -25,4 +26,7 @@ interface IROMState {
     ///      final votes cast. Hence, the `Slot.Data` struct is being used instead of newly named
     ///      variables.
     function votes(uint256 pid) external view returns (uint128 x, uint128 y);
+
+    /// @notice Returns the voting strategy implementation.
+    function computer() external view returns (address);
 }
