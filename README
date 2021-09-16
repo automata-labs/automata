@@ -4,12 +4,12 @@ This repository contains the contracts for abstracting governor tokens
 into their repsective voting- and non-voting token primitives.
 
 The contracts are all replaceable except for the kernel contract that
-contains all of the states of the system. The protocol is token agnostic
-and can have multiple implementations of both voting tokens and
--emulators. The kernel is thus upgradeable in tandem with governance
-model upgrades and built with this adaptability in mind. Additional
-desireable abstractions in the future are resolved by deploying
-complementing pair-wise splitting contracts.
+contains every state of the system. The protocol is token agnostic and
+can have multiple implementations of both voting tokens and emulators.
+The kernel is thus upgradeable in tandem with governance model upgrades,
+and built with this adaptability in mind. Additional abstractions
+desireable in the future are resolved by deploying complementary
+pair-wise contracts that split the derivatives further.
 
 Business Source License 1.1
 
