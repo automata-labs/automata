@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "./interfaces/IObserver.sol";
+import "../../interfaces/IObserver.sol";
 
-import "./interfaces/IKernel.sol";
-import "./interfaces/external/IGovernorAlpha.sol";
+import "../../interfaces/IKernel.sol";
+import "../../interfaces/external/IGovernorAlpha.sol";
+import "../../libraries/access/Access.sol";
+import "../../libraries/utils/Lock.sol";
 
-/// @title Observer
-contract Observer is IObserver {
+/// @title ObserverAlpha
+contract ObserverAlpha is IObserver, Access, Lock {
     /// @inheritdoc IOperatorImmutables
     function kernel() external pure override returns (IKernel) { revert("IMMUTABLE"); }
     /// @inheritdoc IOperatorImmutables
@@ -28,14 +30,15 @@ contract Observer is IObserver {
     /// @inheritdoc IObserverFunctions
     function observe() external override {
         uint256 count = IGovernorAlpha(governor).proposalCount();
-        uint256 state = IGovernorAlpha(governor).state(count);
+        if (count == 0) return;
 
+        uint256 state = IGovernorAlpha(governor).state(count);
         if (!collapsed && state <= 1) {
+            collapsed = true;
             pid = count;
-            collapsed = false;
         } else if (collapsed && state > 1) {
-            pid = 0;
             collapsed = false;
+            pid = 0;
         }
     }
 }

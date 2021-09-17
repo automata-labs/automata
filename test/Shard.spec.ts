@@ -45,6 +45,10 @@ describe('Shard', async () => {
       await shard.connect(other1).initialize();
       expect(await shard.hasRole('0x00000000', other1.address)).to.be.true;
     });
+    it('should revert when initialized twice', async () => {
+      await shard.connect(other1).initialize();
+      expect(shard.connect(other1).initialize()).to.be.revertedWith('Initializable: contract is already initialized');
+    });
     it('should emit an event', async () => {
       await expect(shard.initialize()).to.emit(shard, 'Initialized');
     });

@@ -1,9 +1,7 @@
 import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
-import { ERC20, Kernel, Operator } from '../typechain';
-// @ts-ignore
-import { OperatorFactory } from '../typechain/OperatorFactory.d.ts';
+import { ERC20, Kernel, Operator, OperatorFactory } from '../typechain';
 
 const { createFixtureLoader } = waffle;
 

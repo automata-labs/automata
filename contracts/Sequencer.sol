@@ -95,7 +95,7 @@ contract Sequencer is ISequencer, Access {
         uint256 cursor = Cursor.getCursor(liquidity, decimals);
         while (stack != 0) {
             address shard = shards[cursor];
-            require(shard != address(0), "ADRZ");
+            require(shard != address(0), "ADDRZ");
 
             uint256 complement = Cursor.getCapacityInContext(liquidityNext, decimals);
             if (complement != 0) {
@@ -106,7 +106,7 @@ contract Sequencer is ISequencer, Access {
 
             cursor += 1;
         }
-        require(IERC20(underlying).balanceOf(address(this)) == 0, "!Z");
+        require(IERC20(underlying).balanceOf(address(this)) == 0, "!U0");
 
         liquidity = liquidityNext;
 
@@ -126,7 +126,7 @@ contract Sequencer is ISequencer, Access {
         uint256 cursor = Cursor.getCursor(liquidityNext, decimals);
         while (stack > 0) {
             address shard = shards[cursor];
-            require(shard != address(0), "ADRZ");
+            require(shard != address(0), "ADDRZ");
 
             address[] memory targets  = new address[](1);
             bytes[] memory data = new bytes[](1);
@@ -151,7 +151,7 @@ contract Sequencer is ISequencer, Access {
 
             cursor -= (cursor > 0) ? 1 : 0;
         }
-        require(stack == 0, "!Z");
+        require(stack == 0, "!S0");
 
         withdrawn = amount;
         liquidity = liquidityNext;

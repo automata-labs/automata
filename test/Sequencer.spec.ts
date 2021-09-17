@@ -229,6 +229,10 @@ describe('Sequencer', async () => {
       await token.transfer(sequencer.address, expandTo18Decimals(30));
       await expect(sequencer.deposit()).to.be.revertedWith('OVF');
     });
+    it('should revert when no access', async () => {
+      await expect(sequencer.connect(other1).deposit()).to.be.revertedWith('Access denied');
+      await expect(sequencer.connect(other2).deposit()).to.be.revertedWith('Access denied');
+    });
     it('should emit an event', async () => {
       await sequencer.clones(5);
       await token.transfer(sequencer.address, expandTo18Decimals(10));
@@ -267,6 +271,10 @@ describe('Sequencer', async () => {
       await token.transfer(sequencer.address, expandTo18Decimals(5));
       await sequencer.deposit();
       await expect(sequencer.withdraw(other1.address, expandTo18Decimals(5).add(1))).to.be.reverted;
+    });
+    it('should revert when no access', async () => {
+      await expect(sequencer.connect(other1).withdraw(wallet.address, expandTo18Decimals(1))).to.be.revertedWith('Access denied');
+      await expect(sequencer.connect(other2).withdraw(wallet.address, expandTo18Decimals(1))).to.be.revertedWith('Access denied');
     });
     it('should emit an event', async () => {
       await sequencer.clones(5);
