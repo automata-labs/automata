@@ -1,13 +1,10 @@
 import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
-import { ERC20CompLike, Kernel, Operator, Sequencer } from '../typechain';
-// @ts-ignore
-import { SequencerFactory } from '../typechain/OperatorFactory.d.ts';
-// @ts-ignore
-import { OperatorFactory } from '../typechain/OperatorFactory.d.ts';
+import { ERC20CompLike, GovernorAlphaMock, GovernorBravoMock, Kernel, ObserverAlpha, ObserverBravo, Operator, OperatorFactory, Sequencer, SequencerFactory } from '../typechain';
+import { compLikeFixture, governorAlphaFixture, governorBravoFixture } from './shared/fixtures';
 import { operations } from './shared/functions';
-import { bytes32, expandTo18Decimals, MAX_UINT256, ROOT } from './shared/utils';
+import { expandTo18Decimals, MAX_UINT256, mineBlocks, ROOT } from './shared/utils';
 
 const { BigNumber } = ethers;
 const { createFixtureLoader, provider } = waffle;
@@ -20,28 +17,37 @@ describe('Operator', async () => {
   let other2;
 
   let token: ERC20CompLike;
+  let governorAlpha: GovernorAlphaMock;
+  let governorBravo: GovernorBravoMock;
 
   let kernel: Kernel;
   let sequencerFactory: SequencerFactory;
   let operatorFactory: OperatorFactory;
   let sequencer: Sequencer;
   let operator: Operator;
+  let observerAlpha: ObserverAlpha;
+  let observerBravo: ObserverBravo;
 
   let virtualize: Function;
   let move: Function;
   let fetch: Function;
 
   const fixture = async () => {
-    const ERC20CompLike = await ethers.getContractFactory('ERC20CompLike');
     const Kernel = await ethers.getContractFactory('Kernel');
     const SequencerFactory = await ethers.getContractFactory('SequencerFactory');
     const OperatorFactory = await ethers.getContractFactory('OperatorFactory');
+    const ObserverAlpha = await ethers.getContractFactory('ObserverAlpha');
+    const ObserverBravo = await ethers.getContractFactory('ObserverBravo');
 
-    const timestamp = (await provider.getBlock('latest')).timestamp;
-    token = (await ERC20CompLike.deploy(wallet.address, wallet.address, timestamp + 60 * 60)) as ERC20CompLike;
+    ;({ token } = await compLikeFixture(provider, wallet));
+    ;({ governor: governorAlpha } = await governorAlphaFixture(provider, token, wallet));
+    ;({ governor: governorBravo } = await governorBravoFixture(provider, token, wallet));
+
     kernel = (await Kernel.deploy()) as Kernel;
     sequencerFactory = (await SequencerFactory.deploy()) as SequencerFactory;
     operatorFactory = (await OperatorFactory.deploy(kernel.address)) as OperatorFactory;
+    observerAlpha = (await ObserverAlpha.deploy()) as ObserverAlpha;
+    observerBravo = (await ObserverBravo.deploy()) as ObserverBravo;
 
     await sequencerFactory.create(token.address);
     sequencer = (await ethers.getContractAt('Sequencer', await sequencerFactory.compute(token.address))) as Sequencer;
@@ -60,10 +66,7 @@ describe('Operator', async () => {
 
     await kernel.grantRole(ROOT, operator.address);
     await sequencer.grantRole(ROOT, operator.address);
-    await operator.set(
-      operator.interface.getSighash('sequencer'),
-      abi.encode(['address'], [sequencer.address])
-    );
+    await operator.set(operator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
   };
 
   const realizeFixture = async () => {
@@ -74,10 +77,7 @@ describe('Operator', async () => {
 
     await kernel.grantRole(ROOT, operator.address);
     await sequencer.grantRole(ROOT, operator.address);
-    await operator.set(
-      operator.interface.getSighash('sequencer'),
-      abi.encode(['address'], [sequencer.address])
-    );
+    await operator.set(operator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
 
     await token.approve(operator.address, MAX_UINT256);
     await operator.multicall([
@@ -96,39 +96,95 @@ describe('Operator', async () => {
       await loadFixture(fixture);
     });
 
-    it('should set sequencer', async () => {
-      await operator.set(
-        operator.interface.getSighash('sequencer'),
-        abi.encode(['address'], [sequencer.address])
-      );
-      expect(await operator.sequencer()).to.equal(sequencer.address);
+    describe('sequencer', async () => {
+      let selector;
+
+      before(async () => {
+        selector = operator.interface.getSighash('sequencer');
+      });
+
+      it('should set', async () => {
+        await operator.set(selector, abi.encode(['address'], [sequencer.address]));
+        expect(await operator.sequencer()).to.equal(sequencer.address);
+      });
+      it('should change', async () => {
+        await operator.set(selector, abi.encode(['address'], [sequencer.address]));
+        expect(await operator.sequencer()).to.equal(sequencer.address);
+        await operator.set(selector, abi.encode(['address'], [wallet.address]));
+        expect(await operator.sequencer()).to.equal(wallet.address);
+      });
+      it('should set to arbitrary address', async () => {
+        await operator.set(selector, abi.encode(['address'], [wallet.address]));
+        expect(await operator.sequencer()).to.equal(wallet.address);
+      });
     });
-    it('should change sequencer', async () => {
-      await operator.set(
-        operator.interface.getSighash('sequencer'),
-        abi.encode(['address'], [sequencer.address])
-      );
-      expect(await operator.sequencer()).to.equal(sequencer.address);
-      await operator.set(
-        operator.interface.getSighash('sequencer'),
-        abi.encode(['address'], [wallet.address])
-      );
-      expect(await operator.sequencer()).to.equal(wallet.address);
+
+    describe('governor', async () => {
+      let selector;
+
+      before(async () => {
+        selector = operator.interface.getSighash('governor');
+      });
+
+      it('should set', async () => {
+        await operator.set(selector, abi.encode(['address'], [governorAlpha.address]));
+        expect(await operator.governor()).to.equal(governorAlpha.address);
+      });
+      it('should change', async () => {
+        await operator.set(selector, abi.encode(['address'], [governorAlpha.address]));
+        expect(await operator.governor()).to.equal(governorAlpha.address);
+        await operator.set(selector, abi.encode(['address'], [wallet.address]));
+        expect(await operator.governor()).to.equal(wallet.address);
+      });
+      it('should set to arbitrary address', async () => {
+        await operator.set(selector, abi.encode(['address'], [wallet.address]));
+        expect(await operator.governor()).to.equal(wallet.address);
+      });
     });
-    it('should set non-sequencer contract', async () => {
-      await operator.set(
-        operator.interface.getSighash('sequencer'),
-        abi.encode(['address'], [wallet.address])
-      );
-      expect(await operator.sequencer()).to.equal(wallet.address);
+
+    describe('observer', async () => {
+      let selector;
+
+      before(async () => {
+        selector = operator.interface.getSighash('observer');
+      });
+
+      it('should set', async () => {
+        await operator.set(selector, abi.encode(['address'], [observerAlpha.address]));
+        expect(await operator.observer()).to.equal(observerAlpha.address);
+      });
+      it('should change', async () => {
+        await operator.set(selector, abi.encode(['address'], [observerAlpha.address]));
+        expect(await operator.observer()).to.equal(observerAlpha.address);
+        await operator.set(selector, abi.encode(['address'], [wallet.address]));
+        expect(await operator.observer()).to.equal(wallet.address);
+      });
+      it('should set to arbitrary address', async () => {
+        await operator.set(selector, abi.encode(['address'], [wallet.address]));
+        expect(await operator.observer()).to.equal(wallet.address);
+      });
     });
+
+    it('should set all', async () => {
+      const sequencerSelector = operator.interface.getSighash('sequencer');
+      const governorSelector = operator.interface.getSighash('governor');
+      const observerSelector = operator.interface.getSighash('observer');
+
+      await operator.set(sequencerSelector, abi.encode(['address'], [sequencer.address]));
+      await operator.set(governorSelector, abi.encode(['address'], [governorAlpha.address]));
+      await operator.set(observerSelector, abi.encode(['address'], [observerAlpha.address]));
+    });
+
     it('should revert when no role', async () => {
-      await expect(
-        operator.connect(other1).set(
-          operator.interface.getSighash('sequencer'),
-          abi.encode(['address'], [sequencer.address])
-        )
-      )
+      const sequencerSelector = operator.interface.getSighash('sequencer');
+      const governorSelector = operator.interface.getSighash('governor');
+      const observerSelector = operator.interface.getSighash('observer');
+
+      await expect(operator.connect(other1).set(sequencerSelector, abi.encode(['address'], [sequencer.address])))
+        .to.be.revertedWith('Access denied');
+      await expect(operator.connect(other1).set(governorSelector, abi.encode(['address'], [governorAlpha.address])))
+        .to.be.revertedWith('Access denied');
+      await expect(operator.connect(other1).set(observerSelector, abi.encode(['address'], [observerAlpha.address])))
         .to.be.revertedWith('Access denied');
     });
   });
@@ -138,39 +194,106 @@ describe('Operator', async () => {
       await loadFixture(virtualizeFixture);
     });
 
-    it('should virtualize', async () => {
-      await virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
-      expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
+    describe('no observer', async () => {
+      it('should virtualize', async () => {
+        await virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
+        expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
+      });
+      it('should virtualize multiple times', async () => {
+        await virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(500));
+        await virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
+        expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(510), expandTo18Decimals(510)]);
+      });
+      it.skip('should virtualize with different accounts', async () => {});
+      it('should virtualize to another accounts', async () => {
+        await virtualize(wallet, other1.address, other2.address, expandTo18Decimals(10));
+        expect(await fetch(token.address, other1.address)).to.eql([expandTo18Decimals(10), BigNumber.from(0)]);
+        expect(await fetch(token.address, other2.address)).to.eql([BigNumber.from(0), expandTo18Decimals(10)]);
+      });
+      it('should virtualize zero tokens', async () => {
+        await operator.virtualize(wallet.address, wallet.address);
+      });
+      it.skip('should virtualize dust', async () => {});
+      it.skip('should virtualize line', async () => {});
+      it('should virtualize to non-symmetric slot', async () => {
+        await virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
+        await move(wallet.address, other1.address, expandTo18Decimals(25), expandTo18Decimals(75));
+        expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(75), expandTo18Decimals(25)]);
+        expect(await fetch(token.address, other1.address)).to.eql([expandTo18Decimals(25), expandTo18Decimals(75)]);
+  
+        await virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
+        expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(175), expandTo18Decimals(125)]);
+      });
+      it.skip('should emit an event', async () => {});
+      it.skip('should revert when virtualizeing on zero shards', async () => {});
+      it.skip('should revert when governor is active', async () => {});
+      it.skip('should revert when overflowing sequencer space', async () => {});
     });
-    it('should virtualize multiple times', async () => {
-      await virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(500));
-      await virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
-      expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(510), expandTo18Decimals(510)]);
-    });
-    it.skip('should virtualize with different accounts', async () => {});
-    it('should virtualize to another accounts', async () => {
-      await virtualize(wallet, other1.address, other2.address, expandTo18Decimals(10));
-      expect(await fetch(token.address, other1.address)).to.eql([expandTo18Decimals(10), BigNumber.from(0)]);
-      expect(await fetch(token.address, other2.address)).to.eql([BigNumber.from(0), expandTo18Decimals(10)]);
-    });
-    it('should virtualize zero tokens', async () => {
-      await operator.virtualize(wallet.address, wallet.address);
-    });
-    it.skip('should virtualize dust', async () => {});
-    it.skip('should virtualize line', async () => {});
-    it('should virtualize to non-symmetric slot', async () => {
-      await virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
-      await move(wallet.address, other1.address, expandTo18Decimals(25), expandTo18Decimals(75));
-      expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(75), expandTo18Decimals(25)]);
-      expect(await fetch(token.address, other1.address)).to.eql([expandTo18Decimals(25), expandTo18Decimals(75)]);
 
-      await virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
-      expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(175), expandTo18Decimals(125)]);
+    describe('observer', async () => {
+      const propose = async (governor) => {
+        await token.delegate(wallet.address);
+        await governor.propose(
+          [token.address],
+          [0],
+          ['mint(address,uint256)'],
+          [abi.encode(['address', 'uint256'], [other1.address, expandTo18Decimals(100)])],
+          `Mint to ${other1.address}`
+        );
+      };
+
+      describe('alpha', async () => {
+        beforeEach(async () => {
+          await operator.set(operator.interface.getSighash('governor'), abi.encode(['address'], [governorAlpha.address]));
+          await operator.set(operator.interface.getSighash('observer'), abi.encode(['address'], [observerAlpha.address]));
+        });
+
+        it('should virtualize when governor not active', async () => {
+          await virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
+          expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
+        });
+        it('should virtualize when observer removed', async () => {
+          await propose(governorAlpha);
+          await expect(virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(10))).to.be.revertedWith('CLPSE');
+          await operator.set(operator.interface.getSighash('observer'), abi.encode(['address'], [ethers.constants.AddressZero]));
+          await virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
+          expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
+        });
+        it('should revert when governor is active', async () => {
+          await propose(governorAlpha);
+          await expect(virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(10))).to.be.revertedWith('CLPSE');
+          await mineBlocks(provider, (await governorAlpha.votingPeriod()).toNumber());
+          await virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
+          expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
+        });
+      });
+
+      describe('bravo', async () => {
+        beforeEach(async () => {
+          await operator.set(operator.interface.getSighash('governor'), abi.encode(['address'], [governorBravo.address]));
+          await operator.set(operator.interface.getSighash('observer'), abi.encode(['address'], [observerBravo.address]));
+        });
+
+        it('should virtualize when governor not active', async () => {
+          await virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
+          expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
+        });
+        it('should virtualize when observer removed', async () => {
+          await propose(governorBravo);
+          await expect(virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(10))).to.be.revertedWith('CLPSE');
+          await operator.set(operator.interface.getSighash('observer'), abi.encode(['address'], [ethers.constants.AddressZero]));
+          await virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
+          expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
+        });
+        it('should revert when governor is active', async () => {
+          await propose(governorBravo);
+          await expect(virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(10))).to.be.revertedWith('CLPSE');
+          await mineBlocks(provider, (await governorBravo.votingPeriod()).toNumber());
+          await virtualize(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
+          expect(await fetch(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
+        });
+      });
     });
-    it.skip('should emit an event', async () => {});
-    it.skip('should revert when virtualizeing on zero shards', async () => {});
-    it.skip('should revert when governor is active', async () => {});
-    it.skip('should revert when overflowing sequencer space', async () => {});
   });
 
   describe('#realize', async () => {

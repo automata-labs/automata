@@ -6,6 +6,7 @@ import { AToken, ERC20CompLike, Kernel, Operator, Sequencer } from '../typechain
 import { SequencerFactory } from '../typechain/OperatorFactory.d.ts';
 // @ts-ignore
 import { OperatorFactory } from '../typechain/OperatorFactory.d.ts';
+import { compLikeFixture } from './shared/fixtures';
 import { operations } from './shared/functions';
 import { expandTo18Decimals, MAX_UINT256, ROOT } from './shared/utils';
 
@@ -33,14 +34,12 @@ describe('AToken', async () => {
   let fetch: Function;
 
   const fixture = async () => {
-    const ERC20CompLike = await ethers.getContractFactory('ERC20CompLike');
     const Kernel = await ethers.getContractFactory('Kernel');
     const SequencerFactory = await ethers.getContractFactory('SequencerFactory');
     const OperatorFactory = await ethers.getContractFactory('OperatorFactory');
     const AToken = await ethers.getContractFactory('AToken');
 
-    const timestamp = (await provider.getBlock('latest')).timestamp;
-    token = (await ERC20CompLike.deploy(wallet.address, wallet.address, timestamp + 60 * 60)) as ERC20CompLike;
+    ;({ token } = await compLikeFixture(provider, wallet));
     kernel = (await Kernel.deploy()) as Kernel;
     sequencerFactory = (await SequencerFactory.deploy()) as SequencerFactory;
     operatorFactory = (await OperatorFactory.deploy(kernel.address)) as OperatorFactory;

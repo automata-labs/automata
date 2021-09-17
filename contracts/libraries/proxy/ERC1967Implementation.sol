@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
 
 import "./ERC1967Upgrade.sol";
@@ -16,7 +15,7 @@ import "./ERC1967Upgrade.sol";
  *
  * _Available since v4.1._
  */
-abstract contract ERC1976Implementation is ERC1967Upgrade {
+abstract contract ERC1967Implementation is ERC1967Upgrade {
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable state-variable-assignment
     address private immutable __self = address(this);
 

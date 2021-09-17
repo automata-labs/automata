@@ -15,8 +15,8 @@ import "../../libraries/data/Checkpoint.sol";
 import "../../libraries/proxy/ERC1967Implementation.sol";
 import "../../libraries/utils/RevertMsgExtractor.sol";
 
-/// @title Alpha
-contract Alpha is IROM, ERC1967Implementation, Access {
+/// @title ROMAlpha
+contract ROMAlpha is IROM, ERC1967Implementation, Access {
     /// @inheritdoc IEmulatorImmutables
     function underlying() external pure override returns (address) { revert("IMMUTABLE"); }
     /// @inheritdoc IEmulatorImmutables

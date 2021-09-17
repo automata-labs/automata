@@ -1,20 +1,21 @@
 import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
-import { Accumulator, Bravo, ERC20CompLike, GovernorBravoMock, Kernel, Linear, Operator, OperatorFactory, Sequencer, SequencerFactory, Timelock } from '../typechain';
+import { Accumulator, ROMBravo, ERC20CompLike, GovernorBravoMock, Kernel, Linear, Operator, OperatorFactory, Sequencer, SequencerFactory, Timelock } from '../typechain';
+import { compLikeFixture, governorBravoFixture } from './shared/fixtures';
 import { operations } from './shared/functions';
-import { expandTo18Decimals, MAX_UINT256, mineBlocks, ROOT, TIMELOCK_DELAY } from './shared/utils';
+import { expandTo18Decimals, MAX_UINT256, mineBlocks, ROOT } from './shared/utils';
 
-const { Contract } = ethers;
 const { createFixtureLoader, provider } = waffle;
 
-describe('Bravo', async () => {
+describe('ROMBravo', async () => {
   let abi = new ethers.utils.AbiCoder();
   let loadFixture;
   let wallet;
   let other1;
 
   let token: ERC20CompLike;
+  let governor: GovernorBravoMock;
 
   let kernel: Kernel;
   let sequencerFactory: SequencerFactory;
@@ -24,39 +25,22 @@ describe('Bravo', async () => {
   let accumulator: Accumulator;
 
   let linear: Linear;
-  let emulator: Bravo;
-  let rom: Bravo;
-
-  let timelock: Timelock;
-  let governor: GovernorBravoMock;
+  let emulator: ROMBravo;
+  let rom: ROMBravo;
 
   let virtualize: Function;
 
   const fixture = async () => {
-    const ERC20CompLike = await ethers.getContractFactory('ERC20CompLike');
     const Kernel = await ethers.getContractFactory('Kernel');
     const SequencerFactory = await ethers.getContractFactory('SequencerFactory');
     const OperatorFactory = await ethers.getContractFactory('OperatorFactory');
     const Accumulator = await ethers.getContractFactory('Accumulator');
     const Linear = await ethers.getContractFactory('Linear');
-    const Bravo = await ethers.getContractFactory('Bravo');
+    const ROMBravo = await ethers.getContractFactory('ROMBravo');
     const Emulator = await ethers.getContractFactory('Emulator');
 
-    const Timelock = await ethers.getContractFactory('Timelock');
-    const GovernorBravoMock = await ethers.getContractFactory('GovernorBravoMock');
-
-    const governorBravoAddress = Contract.getContractAddress({ from: wallet.address, nonce: (await wallet.getTransactionCount()) + 2 });
-    const timestamp = (await provider.getBlock('latest')).timestamp;
-    token = (await ERC20CompLike.deploy(wallet.address, wallet.address, timestamp + 60 * 60)) as ERC20CompLike;
-    timelock = (await Timelock.deploy(governorBravoAddress, TIMELOCK_DELAY)) as Timelock;
-    governor = (await GovernorBravoMock.deploy(
-      timelock.address,
-      token.address,
-      wallet.address,
-      100,
-      1,
-      expandTo18Decimals(50000)
-    )) as GovernorBravoMock;
+    ;({ token } = await compLikeFixture(provider, wallet));
+    ;({ governor } = await governorBravoFixture(provider, token, wallet));
 
     kernel = (await Kernel.deploy()) as Kernel;
     sequencerFactory = (await SequencerFactory.deploy()) as SequencerFactory;
@@ -64,9 +48,9 @@ describe('Bravo', async () => {
     accumulator = (await Accumulator.deploy(kernel.address)) as Accumulator;
 
     linear = (await Linear.deploy()) as Linear;
-    rom = (await Bravo.deploy()) as Bravo;
+    rom = (await ROMBravo.deploy()) as ROMBravo;
     const emulatorAddress = (await Emulator.deploy(rom.address, [], token.address)).address;
-    emulator = (await ethers.getContractAt('Bravo', emulatorAddress)) as Bravo;
+    emulator = (await ethers.getContractAt('ROMBravo', emulatorAddress)) as ROMBravo;
 
     await sequencerFactory.create(token.address);
     sequencer = (await ethers.getContractAt('Sequencer', await sequencerFactory.compute(token.address))) as Sequencer;

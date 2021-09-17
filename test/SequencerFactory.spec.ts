@@ -1,9 +1,7 @@
 import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
-import { ERC20, Sequencer } from '../typechain';
-// @ts-ignore
-import { SequencerFactory } from '../typechain/SequencerFactory.d.ts';
+import { ERC20, Sequencer, SequencerFactory } from '../typechain';
 
 const { createFixtureLoader } = waffle;
 

@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
 import { Accumulator, ERC20CompLike, Kernel, Operator, OperatorFactory, Sequencer, SequencerFactory } from '../typechain';
+import { compLikeFixture } from './shared/fixtures';
 import { operations } from './shared/functions';
 import { expandTo18Decimals, MAX_UINT256, Q128, ROOT } from './shared/utils';
 
@@ -29,14 +30,12 @@ describe('Accumulator', async () => {
   let getState: Function;
 
   const fixture = async () => {
-    const ERC20CompLike = await ethers.getContractFactory('ERC20CompLike');
     const Kernel = await ethers.getContractFactory('Kernel');
     const SequencerFactory = await ethers.getContractFactory('SequencerFactory');
     const OperatorFactory = await ethers.getContractFactory('OperatorFactory');
     const Accumulator = await ethers.getContractFactory('Accumulator');
 
-    const timestamp = (await provider.getBlock('latest')).timestamp;
-    token = (await ERC20CompLike.deploy(wallet.address, wallet.address, timestamp + 60 * 60)) as ERC20CompLike;
+    ;({ token } = await compLikeFixture(provider, wallet));
     kernel = (await Kernel.deploy()) as Kernel;
     sequencerFactory = (await SequencerFactory.deploy()) as SequencerFactory;
     operatorFactory = (await OperatorFactory.deploy(kernel.address)) as OperatorFactory;
