@@ -51,7 +51,7 @@ contract ROMAlpha is IROM, ERC1967Implementation, Access {
     /// @inheritdoc IROMStateDerived
     function timeline(uint256 pid) external view override returns (uint256, uint256, uint256, uint256) {
         return _timeline(pid);
-    } 
+    }
 
     /// @inheritdoc IROMFunctions
     function choice(uint256 pid, uint8 support) external override {

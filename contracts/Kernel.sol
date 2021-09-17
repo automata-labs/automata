@@ -43,8 +43,8 @@ contract Kernel is IKernel, Access, Multicall {
 
     /// @inheritdoc IKernelFunctions
     function transfer(bytes32 from, bytes32 to, uint128 x, uint128 y) external override auth {
-        require(slots[from].x >= x, "X");
-        require(slots[from].y >= y, "Y");
+        require(slots[from].x >= x, "-");
+        require(slots[from].y >= y, "-");
         unchecked {
             slots[from].x -= x;
             slots[from].y -= y;
