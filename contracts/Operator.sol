@@ -64,7 +64,7 @@ contract Operator is IOperator, Access, Lock, Multicall {
         kernel.modify(underlying, tox, amount.u128().i128(), 0);
         kernel.modify(underlying, toy, 0, amount.u128().i128());
 
-        emit Joined(msg.sender, tox, toy, amount.u128());
+        emit Virtualized(msg.sender, tox, toy, amount.u128());
     }
 
     /// @inheritdoc IOperatorFunctions
@@ -74,7 +74,7 @@ contract Operator is IOperator, Access, Lock, Multicall {
         kernel.modify(underlying, address(this), -amount.i128(), -amount.i128());
         sequencer.withdraw(to, amount);
 
-        emit Exited(msg.sender, to, amount);
+        emit Realized(msg.sender, to, amount);
     }
 
     /// @inheritdoc IOperatorFunctions
