@@ -13,7 +13,7 @@ library Shell {
         kernel.update(keccak256(abi.encode(underlying, owner)), dx, dy);
     }
 
-    function move(IKernel kernel, address underlying, address from, address to, uint128 x, uint128 y) internal {
+    function transfer(IKernel kernel, address underlying, address from, address to, uint128 x, uint128 y) internal {
         kernel.transfer(keccak256(abi.encode(underlying, from)), keccak256(abi.encode(underlying, to)), x, y);
     }
 }

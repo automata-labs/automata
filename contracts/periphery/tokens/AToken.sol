@@ -40,7 +40,7 @@ contract AToken is IToken, ERC20Permit {
         amount = _balanceOf[address(this)];
         if (amount > 0) {
             require(_burn(address(this), amount), "BURN");
-            kernel.move(underlying, address(this), to, amount.u128(), 0);
+            kernel.transfer(underlying, address(this), to, amount.u128(), 0);
         }
     }
 }

@@ -7,16 +7,19 @@ interface IOperatorFunctions {
 
     /// @notice Deposit tokens to use the protocol.
     /// @dev Requires the account to send tokens to the operator's sequencer.
-    function virtualize(address toX, address toY) external;
+    function join(address tox, address toy) external;
 
     /// @notice Exit the protocol and withdraw tokens.
     /// @dev Requires the account to send `x` and `y` values to the operator, and then calling `exit`.
-    function realize(address to) external;
+    function exit(address to) external;
 
     /// @notice Move internal values from `msg.sender` to an address.
     /// @dev Can only move values inside of the current key space (i.e. w.r.t. `underlying`).
     function transfer(address to, uint128 x, uint128 y) external;
 
-    /// @notice Helper transfer function.
-    function pay(address token, address to, uint256 value) external;
+    /// @notice Sum votes before the votes are cast by the protocol.
+    function use(uint256 pid, uint8 support) external;
+
+    /// @notice Trigger the protocol to cast votes with a specified cursor.
+    function route(uint256 pid, uint256 cursor) external;
 }

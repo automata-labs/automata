@@ -5,10 +5,9 @@ import "./interfaces/IKernel.sol";
 
 import "./libraries/access/Access.sol";
 import "./libraries/data/Slot.sol";
-import "./libraries/utils/Multicall.sol";
 
 /// @title Kernel
-contract Kernel is IKernel, Access, Multicall {
+contract Kernel is IKernel, Access {
     /// @inheritdoc IKernelState
     mapping(bytes32 => Slot.Data) public override slots;
 

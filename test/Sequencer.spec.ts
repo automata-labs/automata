@@ -2,9 +2,9 @@ import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 import * as _ from 'lodash';
 
-import { ERC20CompLike, Sequencer, SequencerFactory, Shard } from '../typechain';
-import { compLikeFixture } from './shared/fixtures';
-import { expandTo18Decimals, MAX_UINT256 } from './shared/utils';
+import { ERC20CompLike, Sequencer, Shard } from '../typechain';
+import { erc20CompLikeFixture } from './shared/fixtures';
+import { deploy, expandTo18Decimals, MAX_UINT256 } from './shared/utils';
 
 const { createFixtureLoader } = waffle;
 const { BigNumber, provider } = ethers;
@@ -16,17 +16,11 @@ describe('Sequencer', async () => {
   let other2;
 
   let token: ERC20CompLike;
-  let sequencerFactory: SequencerFactory;
   let sequencer: Sequencer;
 
   const fixture = async () => {
-    const SequencerFactory = await ethers.getContractFactory('SequencerFactory');
-    
-    ;({ token } = await compLikeFixture(provider, wallet));
-    sequencerFactory = (await SequencerFactory.deploy()) as SequencerFactory;
-    sequencer = (await ethers.getContractAt('Sequencer', await sequencerFactory.compute(token.address))) as Sequencer;
-
-    await sequencerFactory.create(token.address);
+    token = await erc20CompLikeFixture(provider, wallet);
+    sequencer = (await deploy('Sequencer', token.address)) as Sequencer;
   };
   
   before('fixture loader', async () => {

@@ -5,10 +5,12 @@ import "./operator/IOperatorEvents.sol";
 import "./operator/IOperatorFunctions.sol";
 import "./operator/IOperatorImmutables.sol";
 import "./operator/IOperatorState.sol";
+import "./operator/IOperatorStateDerived.sol";
 
 interface IOperator is
     IOperatorImmutables,
     IOperatorState,
+    IOperatorStateDerived,
     IOperatorFunctions,
     IOperatorEvents
 {}

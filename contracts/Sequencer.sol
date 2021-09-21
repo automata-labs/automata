@@ -10,14 +10,14 @@ import "@yield-protocol/utils-v2/contracts/token/IERC20.sol";
 import "@yield-protocol/utils-v2/contracts/token/IERC20Metadata.sol";
 
 import "./Shard.sol";
-import "./interfaces/ISequencerFactory.sol";
 import "./interfaces/IShard.sol";
 import "./interfaces/external/IERC20CompLike.sol";
 import "./libraries/access/Access.sol";
 import "./libraries/math/Cursor.sol";
+import "./libraries/utils/Lock.sol";
 
 /// @title Sequencer
-contract Sequencer is ISequencer, Access {
+contract Sequencer is ISequencer, Access, Lock {
     uint256 private constant MAX_CLONES = uint256(2) ** uint256(8);
 
     /// @inheritdoc ISequencerImmutables
@@ -35,8 +35,7 @@ contract Sequencer is ISequencer, Access {
     /// @inheritdoc ISequencerState
     uint256 public override liquidity;
 
-    constructor() {
-        address underlying_ = ISequencerFactory(msg.sender).parameters();
+    constructor(address underlying_) {
         address implementation_ = address(new Shard());
 
         decimals = IERC20Metadata(underlying_).decimals();
@@ -82,7 +81,7 @@ contract Sequencer is ISequencer, Access {
     }
 
     /// @inheritdoc ISequencerFunctions
-    function deposit() external override auth returns (uint256 amount) {
+    function deposit() external override auth lock returns (uint256 amount) {
         amount = IERC20(underlying).balanceOf(address(this));
         if (amount == 0) {
             return 0;
@@ -114,7 +113,7 @@ contract Sequencer is ISequencer, Access {
     }
 
     /// @inheritdoc ISequencerFunctions
-    function withdraw(address to, uint256 amount) external override auth returns (uint256 withdrawn) {
+    function withdraw(address to, uint256 amount) external override auth lock returns (uint256 withdrawn) {
         if (amount == 0) {
             return 0;
         } else {
@@ -160,11 +159,12 @@ contract Sequencer is ISequencer, Access {
     }
 
     /// @inheritdoc ISequencerFunctions
-    function execute(
-        uint256 cursor,
-        address[] calldata targets,
-        bytes[] calldata data
-    ) external override auth returns (bytes[] memory) {
+    function execute(uint256 cursor, address[] calldata targets, bytes[] calldata data)
+        external
+        override
+        auth
+        returns (bytes[] memory)
+    {
         return IShard(shards[cursor]).execute(targets, data);
     }
 

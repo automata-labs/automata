@@ -82,6 +82,10 @@ export const signature = (signature: string) => {
   return keccak256(toUtf8Bytes(signature)).slice(0, 10);
 };
 
+export async function deploy(name: string, ...args) {
+  return (await ethers.getContractFactory(name)).deploy(...args);
+}
+
 export function verify(head, spec) {
   for (const [i, specSuite] of spec.suites.entries()) {
     const headSuite = head.suites[i] || {};

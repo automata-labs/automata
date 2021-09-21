@@ -5,12 +5,12 @@ import { ERC20CompLike, GovernorAlphaMock, GovernorBravoMock, Timelock } from '.
 
 const { Contract } = ethers;
 
-export async function compLikeFixture(provider, wallet) {
+export async function erc20CompLikeFixture(provider, wallet) {
   const ERC20CompLike = await ethers.getContractFactory('ERC20CompLike');
   const timestamp = (await provider.getBlock('latest')).timestamp;
   const token = (await ERC20CompLike.deploy(wallet.address, wallet.address, timestamp + 60 * 60)) as ERC20CompLike;
 
-  return { token };
+  return token;
 }
 
 export async function governorAlphaFixture(provider, token, wallet) {
@@ -29,7 +29,6 @@ export async function governorBravoFixture(provider, token, wallet) {
   const GovernorBravoMock = await ethers.getContractFactory('GovernorBravoMock');
 
   const governorBravoAddress = Contract.getContractAddress({ from: wallet.address, nonce: (await wallet.getTransactionCount()) + 2 });
-  const timestamp = (await provider.getBlock('latest')).timestamp;
   const timelock = (await Timelock.deploy(governorBravoAddress, TIMELOCK_DELAY)) as Timelock;
   const governor = (await GovernorBravoMock.deploy(
     timelock.address,

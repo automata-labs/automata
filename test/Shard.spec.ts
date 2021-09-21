@@ -3,6 +3,7 @@ import { ethers, waffle } from 'hardhat';
 import { solidity } from 'ethereum-waffle';
 
 import { Executable, Shard, ShardMock } from '../typechain';
+import { deploy } from './shared/utils';
 
 const { createFixtureLoader } = waffle;
 
@@ -19,16 +20,12 @@ describe('Shard', async () => {
   let executable: Executable;
 
   const fixture = async () => {
-    const Shard = await ethers.getContractFactory('Shard');
-    const ShardMock = await ethers.getContractFactory('ShardMock');
-    const Executable = await ethers.getContractFactory('Executable');
-
-    shard = (await Shard.deploy()) as Shard;
-    executable = (await Executable.deploy()) as Executable;
-    shardMock = (await ShardMock.deploy(shard.address, executable.address)) as ShardMock;
+    shard = (await deploy('Shard')) as Shard;
+    executable = (await deploy('Executable')) as Executable;
+    shardMock = (await deploy('ShardMock', shard.address, executable.address)) as ShardMock;
 
     await shard.grantRole('0x00000000', shardMock.address);
-  }
+  };
 
   before('fixture loader', async () => {
     ;([wallet, other1] = await ethers.getSigners());

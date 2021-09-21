@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
 import { Kernel } from '../typechain';
-import { MAX_UINT128 } from './shared/utils';
+import { deploy, MAX_UINT128 } from './shared/utils';
 
 const { BigNumber } = ethers;
 const { createFixtureLoader } = waffle;
@@ -17,9 +17,7 @@ describe('Kernel', async () => {
   let kernel: Kernel;
 
   const fixture = async () => {
-    const Kernel = await ethers.getContractFactory('Kernel');
-
-    kernel = (await Kernel.deploy()) as Kernel;
+    kernel = (await deploy('Kernel')) as Kernel;
   };
 
   before('fixture loader', async () => {

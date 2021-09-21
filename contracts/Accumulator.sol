@@ -9,7 +9,6 @@ import "./libraries/helpers/Global.sol";
 import "./libraries/helpers/Shell.sol";
 import "./libraries/helpers/Unit.sol";
 import "./libraries/math/Cast.sol";
-import "./libraries/math/Delta.sol";
 import "./libraries/math/FixedPoint.sol";
 import "./libraries/math/FullMath.sol";
 
@@ -64,7 +63,7 @@ contract Accumulator is IAccumulator {
         globs.get(underlying)    .modify0(-x.i128(), 0, 0);
         units.get(underlying, to).modify1(-x.i128(), 0, globs[underlying].x128);
 
-        kernel.move(underlying, address(this), to, x, 0);
+        kernel.transfer(underlying, address(this), to, x, 0);
 
         emit Unstaked(msg.sender, underlying, to, x);
     }
@@ -77,7 +76,7 @@ contract Accumulator is IAccumulator {
         globs.get(underlying)    .modify0(0, -c.i128(), 0);
         units.get(underlying, to).modify1(0, -c.i128(), globs[underlying].x128);
 
-        kernel.move(underlying, address(this), to, 0, c);
+        kernel.transfer(underlying, address(this), to, 0, c);
 
         emit Collected(msg.sender, underlying, to, c);
     }
