@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "./interfaces/ISequencer.sol";
+import "../interfaces/ISequencer.sol";
 
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
@@ -10,11 +10,11 @@ import "@yield-protocol/utils-v2/contracts/token/IERC20.sol";
 import "@yield-protocol/utils-v2/contracts/token/IERC20Metadata.sol";
 
 import "./Shard.sol";
-import "./interfaces/IShard.sol";
-import "./interfaces/external/IERC20CompLike.sol";
-import "./libraries/access/Access.sol";
-import "./libraries/math/Cursor.sol";
-import "./libraries/utils/Lock.sol";
+import "../interfaces/IShard.sol";
+import "../interfaces/external/IERC20CompLike.sol";
+import "../libraries/access/Access.sol";
+import "../libraries/math/Cursor.sol";
+import "../libraries/utils/Lock.sol";
 
 /// @title Sequencer
 contract Sequencer is ISequencer, Access, Lock {

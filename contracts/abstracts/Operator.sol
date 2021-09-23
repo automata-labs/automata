@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "../../interfaces/IOperator.sol";
+import "../interfaces/IOperator.sol";
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@yield-protocol/utils-v2/contracts/token/IERC20Metadata.sol";
 
-import "../../interfaces/IAccumulator.sol";
-import "../../interfaces/IComputer.sol";
-import "../../interfaces/IKernel.sol";
-import "../../interfaces/ISequencer.sol";
-import "../../interfaces/external/IERC20CompLike.sol";
-import "../../libraries/data/Checkpoint.sol";
-import "../../libraries/data/Slot.sol";
-import "../../libraries/helpers/Shell.sol";
-import "../../libraries/math/Cast.sol";
-import "../../libraries/utils/RevertMsgExtractor.sol";
+import "../interfaces/IAccumulator.sol";
+import "../interfaces/IComputer.sol";
+import "../interfaces/IKernel.sol";
+import "../interfaces/ISequencer.sol";
+import "../interfaces/external/IERC20CompLike.sol";
+import "../libraries/data/Checkpoint.sol";
+import "../libraries/data/Slot.sol";
+import "../libraries/helpers/Shell.sol";
+import "../libraries/math/Cast.sol";
+import "../libraries/utils/RevertMsgExtractor.sol";
 
 abstract contract Operator is IOperator {
     using Cast for uint256;
@@ -83,7 +83,6 @@ abstract contract Operator is IOperator {
     /// @inheritdoc IOperatorFunctions
     function exit(address to) external override {
         Slot.Data memory slot = IKernel(kernel).get(underlying, address(this));
-
         uint128 amount = Math.min(slot.x, slot.y).u128();
         IKernel(kernel).modify(underlying, address(this), -amount.i128(), -amount.i128());
         ISequencer(sequencer).withdraw(to, amount);

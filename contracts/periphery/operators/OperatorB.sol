@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "./Operator.sol";
+import "../../abstracts/Operator.sol";
 
 import "../../interfaces/ISequencer.sol";
 import "../../interfaces/external/IGovernorBravo.sol";
@@ -47,11 +47,13 @@ contract OperatorB is Operator {
     }
 
     function _observe() internal view override {
-        uint256 count = IGovernorBravo(governor).proposalCount();
-        try IGovernorBravo(governor).state(count) returns (uint256 state) {
-            require(state > 1, "OBS");
-        } catch {
-            return;
+        if (governor != address(0)) {
+            uint256 count = IGovernorBravo(governor).proposalCount();
+            try IGovernorBravo(governor).state(count) returns (uint256 state) {
+                require(state > 1, "OBS");
+            } catch {
+                return;
+            }
         }
     }
 

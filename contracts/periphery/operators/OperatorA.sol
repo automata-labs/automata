@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "./Operator.sol";
+import "../../abstracts/Operator.sol";
 
 import "../../interfaces/ISequencer.sol";
 import "../../interfaces/external/IGovernorAlpha.sol";
@@ -21,21 +21,22 @@ contract OperatorA is Operator {
         require(block.number <= end, "END");
 
         Checkpoint.Data memory checkpoint = _checkpoint(pid, start);
-        (uint8 support_, uint256 amount) = _compute(checkpoint.votes, votes[pid].x, votes[pid].y);
-        bool support = (support_ == uint8(1)) ? true : false;
 
-        uint256 votesi = checkpoint.votes / (uint256(10) ** decimals);
-        uint256 amounti = amount / (uint256(10) ** decimals);
+        uint256 max = checkpoint.votes / (uint256(10) ** decimals);
+        uint256 x = votes[pid].x / (uint256(10) ** decimals);
+        uint256 y = votes[pid].y / (uint256(10) ** decimals);
+        (uint8 support_, uint256 amount) = _compute(max, x, y);
+        bool support = (support_ == uint8(1)) ? true : false;
 
         // bit field verification
         uint256 mask = 1 << cursor;
-        if (amounti > (1 << checkpoint.cursor) - 1) {
+        if (amount > (1 << checkpoint.cursor) - 1) {
             if (checkpoint.cursor != cursor) {
-                uint256 head = votesi - ((1 << checkpoint.cursor) - 1);
-                require((amounti - head) & mask == mask, "F0");
+                uint256 head = max - ((1 << checkpoint.cursor) - 1);
+                require((amount - head) & mask == mask, "F0");
             }
         } else {
-            require((amounti & mask) == mask, "F1");
+            require((amount & mask) == mask, "F1");
         }
 
         // cast vote

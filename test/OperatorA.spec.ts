@@ -123,7 +123,10 @@ describe('OperatorA', async () => {
       await join(wallet, wallet.address, wallet.address, 1);
       expect(await read(token.address, wallet.address)).to.eql([BigNumber.from(1), BigNumber.from(1)]);
     });
-    it.skip('should join line', async () => {});
+    it('should join line', async () => {
+      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(1023));
+      await expect(join(wallet, wallet.address, wallet.address, expandTo18Decimals(1023))).to.be.reverted.revertedWith('SOVF');
+    });
     it.skip('should join with different accounts', async () => {});
     it('should join to another accounts', async () => {
       await join(wallet, other1.address, other2.address, expandTo18Decimals(10));

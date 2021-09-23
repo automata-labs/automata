@@ -77,6 +77,18 @@ describe('Kernel', async () => {
       expect((await kernel.read(key)).x).to.equal(1);
       expect((await kernel.read(key)).y).to.equal(2);
     });
+    it('(1, 2) + (0, -1)', async () => {
+      await kernel.write(key, 1, 2);
+      await kernel.update(key, 0, -1);
+      expect((await kernel.read(key)).x).to.equal(1);
+      expect((await kernel.read(key)).y).to.equal(1);
+    });
+    it('(1, 2) + (-1, 0)', async () => {
+      await kernel.write(key, 1, 2);
+      await kernel.update(key, -1, 0);
+      expect((await kernel.read(key)).x).to.equal(0);
+      expect((await kernel.read(key)).y).to.equal(2);
+    });
     it('(1, 2) + (-1, -2)', async () => {
       await kernel.write(key, 1, 2);
       await kernel.update(key, -1, -2);

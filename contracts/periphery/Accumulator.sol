@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "./interfaces/IAccumulator.sol";
+import "../interfaces/IAccumulator.sol";
 
-import "./interfaces/IKernel.sol";
-import "./libraries/data/State.sol";
-import "./libraries/helpers/Global.sol";
-import "./libraries/helpers/Shell.sol";
-import "./libraries/helpers/Unit.sol";
-import "./libraries/math/Cast.sol";
-import "./libraries/math/FixedPoint.sol";
-import "./libraries/math/FullMath.sol";
+import "../interfaces/IKernel.sol";
+import "../libraries/data/State.sol";
+import "../libraries/helpers/Global.sol";
+import "../libraries/helpers/Shell.sol";
+import "../libraries/helpers/Unit.sol";
+import "../libraries/math/Cast.sol";
+import "../libraries/math/FixedPoint.sol";
+import "../libraries/math/FullMath.sol";
 
 /// @title Accumulator
 contract Accumulator is IAccumulator {

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "./interfaces/IShard.sol";
+import "../interfaces/IShard.sol";
 
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
-import "./libraries/access/Access.sol";
-import "./libraries/utils/RevertMsgExtractor.sol";
+import "../libraries/access/Access.sol";
+import "../libraries/utils/RevertMsgExtractor.sol";
 
 /// @title Shard
 contract Shard is IShard, Access, Initializable {
