@@ -10,6 +10,7 @@ import "@yield-protocol/utils-v2/contracts/token/IERC20Metadata.sol";
 
 import "./Shard.sol";
 import "../interfaces/IShard.sol";
+import "../interfaces/callbacks/IDelegatee.sol";
 import "../interfaces/external/IERC20CompLike.sol";
 import "../libraries/access/Access.sol";
 import "../libraries/math/Cursor.sol";
@@ -127,10 +128,10 @@ contract Sequencer is ISequencer, Access {
             uint256 balance = Cursor.getLiquidityInShard(liquidity + stack, decimals, cursor);
             if (balance != 0) {
                 if (stack > balance) {
-                    IShard(shard).safeTransfer(underlying, to, balance);
+                    IShard(shard).transfer(underlying, to, balance);
                     stack -= balance;
                 } else {
-                    IShard(shard).safeTransfer(underlying, to, stack);
+                    IShard(shard).transfer(underlying, to, stack);
                     stack = 0;
                 }
             }
@@ -141,6 +142,37 @@ contract Sequencer is ISequencer, Access {
         emit Withdrawn(liquidity);
 
         return amount;
+    }
+
+    function delegateLoan(uint256 cursor, address delegatee, bytes calldata data) external {
+        IShard(shards[cursor]).delegate(underlying, delegatee);
+
+        require(
+            IDelegatee(msg.sender).onDelegateLoan(msg.sender, underlying, cursor, delegatee, data)
+                == keccak256("Delegatee.onDelegateLoan"),
+            "Callback failed"
+        );
+
+        IShard(shards[cursor]).delegate(underlying, shards[cursor]);
+    }
+
+    function delegateLoans(
+        uint256[] memory cursorees,
+        address[] memory delegatees,
+        bytes calldata data
+    ) external {
+        for (uint256 i = 0; i < cursorees.length; i++) {
+            IShard(shards[cursorees[i]]).delegate(underlying, delegatees[i]);
+        }
+
+        require(
+            IDelegatee(msg.sender).onDelegateLoans(msg.sender, underlying, cursorees, delegatees, data) == keccak256("Delegatee.onDelegateLoan"),
+            "Callback failed"
+        );
+
+        for (uint256 i = 0; i < cursorees.length; i++) {
+            IShard(shards[cursorees[i]]).delegate(underlying, shards[cursorees[i]]);
+        }
     }
 
     /// @inheritdoc ISequencerFunctions
@@ -167,12 +199,8 @@ contract Sequencer is ISequencer, Access {
 
         // delegate to self after cloning shard.
         // will fail if `underlying` is not a `CompLike` token.
-        address[] memory targets = new address[](1);
-        bytes[] memory data = new bytes[](1);
-        targets[0] = underlying;
-        data[0] = abi.encodeWithSelector(IERC20CompLike.delegate.selector, cloned);
         IShard(cloned).initialize();
-        IShard(cloned).execute(targets, data);
+        IShard(cloned).delegate(underlying, cloned);
 
         // update
         cursors[cloned] = cursor;
