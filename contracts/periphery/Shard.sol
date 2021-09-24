@@ -6,6 +6,7 @@ import "../interfaces/IShard.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
+import "../interfaces/external/IERC20CompLike.sol";
 import "../libraries/access/Access.sol";
 import "../libraries/utils/RevertMsgExtractor.sol";
 
@@ -18,12 +19,13 @@ contract Shard is IShard, Access, Initializable {
     }
 
     /// @inheritdoc IShardFunctions
-    function safeTransfer(
-        address token,
-        address to,
-        uint256 amount
-    ) external override auth {
+    function transfer(address token, address to, uint256 amount) external override auth {
         TransferHelper.safeTransfer(token, to, amount);
+    }
+
+    /// @inheritdoc IShardFunctions
+    function delegate(address token, address delegatee) external override auth {
+        IERC20CompLike(token).delegate(delegatee);
     }
 
     /// @inheritdoc IShardFunctions
