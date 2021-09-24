@@ -25,7 +25,7 @@ contract Kernel is IKernel, Access {
     }
 
     /// @inheritdoc IKernelFunctions
-    function update(bytes32 key, int128 dx, int128 dy) external override auth {
+    function update(bytes32 key, int128 dx, int128 dy) external override auth returns (Slot.Data memory) {
         if (dx > 0) slots[key].x += uint128(dx);
         if (dx < 0) {
             require(slots[key].x >= uint128(-dx), "-");
@@ -38,6 +38,8 @@ contract Kernel is IKernel, Access {
         }
 
         emit Updated(msg.sender, key, dx, dy);
+
+        return slots[key];
     }
 
     /// @inheritdoc IKernelFunctions

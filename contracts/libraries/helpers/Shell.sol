@@ -9,6 +9,14 @@ library Shell {
         return kernel.read(keccak256(abi.encode(underlying, owner)));
     }
 
+    // function level(IKernel kernel, address underlying) internal view returns (uint128) {
+    //     return kernel.read(keccak256(abi.encode(address(kernel), underlying))).x;
+    // }
+
+    function pool(IKernel kernel, address underlying, int128 d) internal returns (uint128) {
+        return kernel.update(keccak256(abi.encode(address(kernel), underlying)), d, 0).x;
+    }
+
     function modify(IKernel kernel, address underlying, address owner, int128 dx, int128 dy) internal {
         kernel.update(keccak256(abi.encode(underlying, owner)), dx, dy);
     }

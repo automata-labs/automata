@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
+import "../../libraries/data/Slot.sol";
+
 interface IKernelFunctions {
     /// @notice Set a slot.
     /// @dev Requires authorization.
@@ -8,7 +10,7 @@ interface IKernelFunctions {
 
     /// @notice Updates a slot.
     /// @dev Requires authorization. Updates the slot by deltas and reverts on negative underflow.
-    function update(bytes32 key, int128 deltaX, int128 deltaY) external;
+    function update(bytes32 key, int128 deltaX, int128 deltaY) external returns (Slot.Data memory);
 
     /// @notice Transfer `x` or `y` from one key to another.
     /// @dev Requires authorization.

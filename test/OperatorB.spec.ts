@@ -67,6 +67,7 @@ describe('OperatorB', async () => {
 
     await operator.set(operator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
     await operator.set(operator.interface.getSighash('governor'), abi.encode(['address'], [governor.address]));
+    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(10000)]));
   };
 
   const exitFixture = async () => {
@@ -91,6 +92,7 @@ describe('OperatorB', async () => {
     await operator.set(operator.interface.getSighash('governor'), abi.encode(['address'], [governor.address]));
     await operator.set(operator.interface.getSighash('period'), abi.encode(['uint32'], [80]));
     await operator.set(operator.interface.getSighash('computer'), abi.encode(['address'], [linear.address]));
+    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(10000)]));
   };
 
   const routeFixture = async () => {
@@ -149,6 +151,11 @@ describe('OperatorB', async () => {
     it.skip('should emit an event', async () => {});
     it('should revert when zero tokens', async () => {
       await expect(operator.join(wallet.address, wallet.address)).to.be.revertedWith('0');
+    });
+    it('should revert when overflowing limit', async () => {
+      await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(100)]));
+      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
+      await expect(join(wallet, wallet.address, wallet.address, 1)).to.be.revertedWith('LIM');
     });
     it.skip('should revert when join on zero shards', async () => {});
     it('should revert when governor is active', async () => {

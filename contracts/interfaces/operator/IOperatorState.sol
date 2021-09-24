@@ -22,6 +22,10 @@ interface IOperatorState {
     /// @notice Returns the observe toggle.
     function observe() external view returns (bool);
 
+    /// @notice Returns the limit.
+    /// @dev The max amount of tokens that can be joined using this operator.
+    function limit() external view returns (uint256);
+
     /// @notice The mapping from proposal id to past cursor and -votes.
     /// @dev The checkpoint is used for gas-savings when casting votes through the protocol. Instead
     ///      of having to call and tally up `getPriorVotes` each time, the values are cached by the

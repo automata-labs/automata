@@ -48,6 +48,7 @@ describe('Accumulator', async () => {
     await kernel.grantRole(ROOT, accumulator.address);
     await sequencer.grantRole(ROOT, operator.address);
     await operator.set(operator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
+    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(10000)]));
 
     await token.approve(sequencer.address, MAX_UINT256);
     await sequencer.clones(10);

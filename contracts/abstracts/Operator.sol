@@ -43,6 +43,8 @@ abstract contract Operator is IOperator {
 
     /// @inheritdoc IOperatorState
     bool public override observe;
+    /// @inheritdoc IOperatorState
+    uint256 public override limit;
 
     /// @inheritdoc IOperatorState
     mapping(uint256 => Checkpoint.Data) public override checkpoints;
@@ -69,6 +71,7 @@ abstract contract Operator is IOperator {
         else if (selector == IOperatorState.period.selector) period = abi.decode(data, (uint32));
         else if (selector == IOperatorState.computer.selector) computer = abi.decode(data, (address));
         else if (selector == IOperatorState.observe.selector) observe = abi.decode(data, (bool));
+        else if (selector == IOperatorState.limit.selector) limit = abi.decode(data, (uint256));
         else revert("!");
     }
 
@@ -76,6 +79,7 @@ abstract contract Operator is IOperator {
     function join(address tox, address toy) external override {
         if (observe) _observe();
         uint256 amount = ISequencer(sequencer).deposit();
+        require(IKernel(kernel).pool(underlying, amount.u128().i128()) <= limit, "LIM");
         IKernel(kernel).modify(underlying, tox, amount.u128().i128(), 0);
         IKernel(kernel).modify(underlying, toy, 0, amount.u128().i128());
     }
