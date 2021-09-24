@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "../interfaces/ISequencer.sol";
 
 import "@openzeppelin/contracts/proxy/Clones.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "@yield-protocol/utils-v2/contracts/token/IERC20.sol";
 import "@yield-protocol/utils-v2/contracts/token/IERC20Metadata.sol";
@@ -14,10 +13,11 @@ import "../interfaces/IShard.sol";
 import "../interfaces/external/IERC20CompLike.sol";
 import "../libraries/access/Access.sol";
 import "../libraries/math/Cursor.sol";
-import "../libraries/utils/Lock.sol";
 
 /// @title Sequencer
-contract Sequencer is ISequencer, Access, Lock {
+contract Sequencer is ISequencer, Access {
+    using TransferHelper for address;
+
     uint256 private constant MAX_CLONES = uint256(2) ** uint256(8);
 
     /// @inheritdoc ISequencerImmutables
@@ -81,81 +81,66 @@ contract Sequencer is ISequencer, Access, Lock {
     }
 
     /// @inheritdoc ISequencerFunctions
-    function deposit() external override auth lock returns (uint256 amount) {
+    function deposit() external override auth returns (uint256 amount) {
         amount = IERC20(underlying).balanceOf(address(this));
-        if (amount == 0) {
-            return 0;
-        } else {
-            require(amount <= Cursor.getCapacity(liquidity, decimals, _cardinality()), "SOVF");
-        }
+        require(amount > 0, "0");
+        require(amount <= Cursor.getCapacity(liquidity, decimals, _cardinality()), "OVF");
 
+        liquidity += amount;
+
+        uint256 cursor = Cursor.getCursor(liquidity - amount, decimals);
         uint256 stack = amount;
-        uint256 liquidityNext = liquidity;
-        uint256 cursor = Cursor.getCursor(liquidity, decimals);
         while (stack != 0) {
             address shard = shards[cursor];
             require(shard != address(0), "ADDRZ");
 
-            uint256 complement = Cursor.getCapacityInContext(liquidityNext, decimals);
+            uint256 complement = Cursor.getCapacityInContext(liquidity - stack, decimals);
             if (complement != 0) {
-                TransferHelper.safeTransfer(underlying, shard, Math.min(stack, complement));
-                liquidityNext += Math.min(stack, complement);
-                stack -= Math.min(stack, complement);
+                if (stack > complement) {
+                    underlying.safeTransfer(shard, complement);
+                    stack -= complement;
+                } else {
+                    underlying.safeTransfer(shard, stack);
+                    stack = 0;
+                }
             }
 
             cursor += 1;
         }
-        require(IERC20(underlying).balanceOf(address(this)) == 0, "!U0");
-
-        liquidity = liquidityNext;
 
         emit Sequenced(liquidity);
     }
 
     /// @inheritdoc ISequencerFunctions
-    function withdraw(address to, uint256 amount) external override auth lock returns (uint256 withdrawn) {
-        if (amount == 0) {
-            return 0;
-        } else {
-            require(amount <= liquidity, "WOVF");
-        }
+    function withdraw(address to, uint256 amount) external override auth returns (uint256) {
+        require(amount > 0, "0");
+        require(amount <= liquidity, "UVF");
 
+        liquidity -= amount;
+
+        uint256 cursor = Cursor.getCursor(liquidity + amount, decimals);
         uint256 stack = amount;
-        uint256 liquidityNext = liquidity;
-        uint256 cursor = Cursor.getCursor(liquidityNext, decimals);
         while (stack > 0) {
             address shard = shards[cursor];
             require(shard != address(0), "ADDRZ");
 
-            address[] memory targets  = new address[](1);
-            bytes[] memory data = new bytes[](1);
-            uint256 balance = Cursor.getLiquidityInShard(liquidityNext, decimals, cursor);
+            uint256 balance = Cursor.getLiquidityInShard(liquidity + stack, decimals, cursor);
             if (balance != 0) {
                 if (stack > balance) {
-                    targets[0] = underlying;
-                    data[0] = abi.encodeWithSelector(IERC20.transfer.selector, to, balance);
-
-                    IShard(shard).execute(targets, data);
-                    liquidityNext -= balance;
+                    IShard(shard).safeTransfer(underlying, to, balance);
                     stack -= balance;
                 } else {
-                    targets[0] = underlying;
-                    data[0] = abi.encodeWithSelector(IERC20.transfer.selector, to, stack);
-
-                    IShard(shard).execute(targets, data);
-                    liquidityNext -= stack;
+                    IShard(shard).safeTransfer(underlying, to, stack);
                     stack = 0;
                 }
             }
 
             cursor -= (cursor > 0) ? 1 : 0;
         }
-        require(stack == 0, "!S0");
-
-        withdrawn = amount;
-        liquidity = liquidityNext;
 
         emit Withdrawn(liquidity);
+
+        return amount;
     }
 
     /// @inheritdoc ISequencerFunctions
@@ -175,17 +160,17 @@ contract Sequencer is ISequencer, Access, Lock {
     function _clone() internal returns (uint256 cursor, address cloned) {
         cursor = _cardinality();
         cloned = Clones.cloneDeterministic(implementation, keccak256(abi.encodePacked(cursor)));
-        // send value 1 of underlying to shard to save gas costs
+
+        // send value 1 of underlying to shard to initialize storage slot, saving gas
         // shard not initializing with 0 tokens does not affect the logic
-        address[] memory targets = new address[](1);
-        bytes[] memory data = new bytes[](1);
+        underlying.safeTransferFrom(msg.sender, cloned, 1);
 
         // delegate to self after cloning shard.
         // will fail if `underlying` is not a `CompLike` token.
+        address[] memory targets = new address[](1);
+        bytes[] memory data = new bytes[](1);
         targets[0] = underlying;
         data[0] = abi.encodeWithSelector(IERC20CompLike.delegate.selector, cloned);
-
-        TransferHelper.safeTransferFrom(underlying, msg.sender, cloned, 1);
         IShard(cloned).initialize();
         IShard(cloned).execute(targets, data);
 

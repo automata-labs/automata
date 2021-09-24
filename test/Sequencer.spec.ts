@@ -155,13 +155,6 @@ describe('Sequencer', async () => {
       await token.approve(sequencer.address, MAX_UINT256);
     });
 
-    it('should sequence zero on zero shards', async () => {
-      await sequencer.deposit();
-    });
-    it('should sequence zero on non-zero shards', async () => {
-      await sequencer.clones(10);
-      await sequencer.deposit();
-    });
     it('should sequence non-zero on non-zero shards', async () => {
       await sequencer.clones(10);
       await token.transfer(sequencer.address, expandTo18Decimals(100));
@@ -209,6 +202,13 @@ describe('Sequencer', async () => {
       expect(liquidity).to.equal(amount);
       expect(decimals).to.equal(18);
     });
+    it('should revert when zero on zero shards', async () => {
+      await expect(sequencer.deposit()).to.be.revertedWith('0');
+    });
+    it('should revert when zero on non-zero shards', async () => {
+      await sequencer.clones(10);
+      await expect(sequencer.deposit()).to.be.revertedWith('0');
+    });
     it('should revert when sequencing non-zero on zero shards', async () => {
       await token.transfer(sequencer.address, 1);
       await expect(sequencer.deposit()).to.be.revertedWith('OVF');
@@ -238,17 +238,6 @@ describe('Sequencer', async () => {
       await token.approve(sequencer.address, MAX_UINT256);
     });
 
-    it('should withdraw zero on zero liquidity', async () => {
-      await sequencer.withdraw(wallet.address, 0);
-    });
-    it('should withdraw zero on non-zero liquidity', async () => {
-      await sequencer.clones(5);
-      await token.transfer(sequencer.address, expandTo18Decimals(5));
-      await sequencer.deposit();
-      await sequencer.withdraw(other1.address, 0);
-      expect(await sequencer.liquidity()).to.equal(expandTo18Decimals(5));
-      expect(await token.balanceOf(other1.address)).to.equal(0);
-    });
     it('should withdraw non-zero on non-zero liquidity', async () => {
       await sequencer.clones(5);
       await token.transfer(sequencer.address, expandTo18Decimals(5));
@@ -256,6 +245,15 @@ describe('Sequencer', async () => {
       await sequencer.withdraw(other1.address, expandTo18Decimals(3));
       expect(await sequencer.liquidity()).to.equal(expandTo18Decimals(2));
       expect(await token.balanceOf(other1.address)).to.equal(expandTo18Decimals(3));
+    });
+    it('should revert when zero on zero liquidity', async () => {
+      await expect(sequencer.withdraw(wallet.address, 0)).to.be.revertedWith("0");
+    });
+    it('should revert when zero on non-zero liquidity', async () => {
+      await sequencer.clones(5);
+      await token.transfer(sequencer.address, expandTo18Decimals(5));
+      await sequencer.deposit();
+      await expect(sequencer.withdraw(other1.address, 0)).to.be.revertedWith("0");
     });
     it('should revert on withdraw overflows', async () => {
       await sequencer.clones(5);
