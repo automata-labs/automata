@@ -116,16 +116,13 @@ describe('OperatorA', async () => {
       await join(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
       expect(await read(token.address, wallet.address)).to.eql([expandTo18Decimals(510), expandTo18Decimals(510)]);
     });
-    it('should join zero tokens', async () => {
-      await operator.join(wallet.address, wallet.address);
-    });
     it('should join dust', async () => {
       await join(wallet, wallet.address, wallet.address, 1);
       expect(await read(token.address, wallet.address)).to.eql([BigNumber.from(1), BigNumber.from(1)]);
     });
     it('should join line', async () => {
       await join(wallet, wallet.address, wallet.address, expandTo18Decimals(1023));
-      await expect(join(wallet, wallet.address, wallet.address, expandTo18Decimals(1023))).to.be.reverted.revertedWith('SOVF');
+      await expect(join(wallet, wallet.address, wallet.address, expandTo18Decimals(1023))).to.be.reverted.revertedWith('OVF');
     });
     it.skip('should join with different accounts', async () => {});
     it('should join to another accounts', async () => {
@@ -153,6 +150,9 @@ describe('OperatorA', async () => {
       expect(await read(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
     });
     it.skip('should emit an event', async () => {});
+    it('should revert when zero tokens', async () => {
+      await expect(operator.join(wallet.address, wallet.address)).to.be.revertedWith('0');
+    });
     it.skip('should revert when join on zero shards', async () => {});
     it('should revert when governor is active', async () => {
       await propose(governor);

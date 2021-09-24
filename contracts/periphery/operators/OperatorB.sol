@@ -21,20 +21,21 @@ contract OperatorB is Operator {
         require(block.number <= end, "END");
 
         Checkpoint.Data memory checkpoint = _checkpoint(pid, start);
-        (uint8 support, uint256 amount) = _compute(checkpoint.votes, votes[pid].x, votes[pid].y);
 
-        uint256 votesi = checkpoint.votes / (uint256(10) ** decimals);
-        uint256 amounti = amount / (uint256(10) ** decimals);
+        uint256 max = checkpoint.votes / (uint256(10) ** decimals);
+        uint256 x = votes[pid].x / (uint256(10) ** decimals);
+        uint256 y = votes[pid].y / (uint256(10) ** decimals);
+        (uint8 support, uint256 amount) = _compute(max, x, y);
     
         // bit field verification
         uint256 mask = 1 << cursor;
-        if (amounti > (1 << checkpoint.cursor) - 1) {
+        if (amount > (1 << checkpoint.cursor) - 1) {
             if (checkpoint.cursor != cursor) {
-                uint256 head = votesi - ((1 << checkpoint.cursor) - 1);
-                require((amounti - head) & mask == mask, "F0");
+                uint256 head = max - ((1 << checkpoint.cursor) - 1);
+                require((amount - head) & mask == mask, "F0");
             }
         } else {
-            require((amounti & mask) == mask, "F1");
+            require((amount & mask) == mask, "F1");
         }
 
         // cast vote
