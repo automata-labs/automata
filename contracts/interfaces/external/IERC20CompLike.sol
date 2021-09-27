@@ -9,6 +9,11 @@ interface IERC20CompLike {
     /// @param delegatee The address to delegate votes to
     function delegate(address delegatee) external;
 
+    /// @notice Gets the current votes balance for `account`
+    /// @param account The address to get votes balance
+    /// @return The number of current votes for `account`
+    function getCurrentVotes(address account) external view returns (uint96);
+
     /// @notice Determine the prior number of votes for an account as of a block number
     /// @dev Block number must be a finalized block or else this function will revert to prevent misinformation.
     /// @param account The address of the account to check

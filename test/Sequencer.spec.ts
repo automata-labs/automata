@@ -2,39 +2,62 @@ import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 import * as _ from 'lodash';
 
-import { ERC20CompLike, Sequencer, Shard } from '../typechain';
-import { erc20CompLikeFixture } from './shared/fixtures';
+import { ERC20CompLike, GovernorBravoMock, ProposerMock, Sequencer, Shard } from '../typechain';
+import { erc20CompLikeFixture, governorBravoFixture } from './shared/fixtures';
 import { deploy, expandTo18Decimals, MAX_UINT256 } from './shared/utils';
 
 const { createFixtureLoader } = waffle;
 const { BigNumber, provider } = ethers;
 
 describe('Sequencer', async () => {
+  let abi = new ethers.utils.AbiCoder();
   let loadFixture;  
   let wallet;
   let other1;
   let other2;
 
   let token: ERC20CompLike;
+  let governor: GovernorBravoMock;
+
   let sequencer: Sequencer;
+  let proposer: ProposerMock;
 
   const fixture = async () => {
     token = await erc20CompLikeFixture(provider, wallet);
+    ;({ governor } = await governorBravoFixture(provider, token, wallet));
+
     sequencer = (await deploy('Sequencer', token.address)) as Sequencer;
+    proposer = (await deploy('ProposerMock')) as ProposerMock;
   };
   
+  const cloneFixture = async () => {
+    await fixture();
+    await token.approve(sequencer.address, MAX_UINT256);
+  };
+
+  const clonesFixture = async () => {
+    await fixture();
+    await token.approve(sequencer.address, MAX_UINT256);
+  };
+
+  const depositFixture = async () => {
+    await fixture();
+    await token.approve(sequencer.address, MAX_UINT256);
+  };
+
+  const withdrawFixture = async () => {
+    await fixture();
+    await token.approve(sequencer.address, MAX_UINT256);
+  };
+
   before('fixture loader', async () => {
     ;([wallet, other1, other2] = await ethers.getSigners());
     loadFixture = createFixtureLoader([wallet]);
   });
 
-  beforeEach(async () => {
-    await loadFixture(fixture);
-  });
-
   describe('#clone', async () => {
     beforeEach(async () => {
-      await token.approve(sequencer.address, MAX_UINT256);
+      await loadFixture(cloneFixture);
     });
 
     it('should clone', async () => {
@@ -92,7 +115,7 @@ describe('Sequencer', async () => {
 
   describe('#clones', async () => {
     beforeEach(async () => {
-      await token.approve(sequencer.address, MAX_UINT256);
+      await loadFixture(clonesFixture);
     });
 
     it('should create zero clones', async () => {
@@ -152,16 +175,16 @@ describe('Sequencer', async () => {
 
   describe('#deposit', async () => {
     beforeEach(async () => {
-      await token.approve(sequencer.address, MAX_UINT256);
+      await loadFixture(depositFixture);
     });
 
-    it('should sequence non-zero on non-zero shards', async () => {
+    it('should deposit non-zero on non-zero shards', async () => {
       await sequencer.clones(10);
       await token.transfer(sequencer.address, expandTo18Decimals(100));
       await sequencer.deposit();
       expect(await sequencer.liquidity()).to.equal(expandTo18Decimals(100));
     });
-    it('should sequence 127 units', async () => {
+    it('should deposit 127 units', async () => {
       await sequencer.clones(10);
       await token.transfer(sequencer.address, expandTo18Decimals(127));
       await sequencer.deposit();
@@ -171,7 +194,7 @@ describe('Sequencer', async () => {
       expect(liquidity).to.equal(expandTo18Decimals(127));
       expect(decimals).to.equal(18);
     });
-    it('should sequence 127 units - 1', async () => {
+    it('should deposit 127 units - 1', async () => {
       await sequencer.clones(10);
       await token.transfer(sequencer.address, expandTo18Decimals(127).sub(1));
       await sequencer.deposit();
@@ -181,7 +204,7 @@ describe('Sequencer', async () => {
       expect(liquidity).to.equal(expandTo18Decimals(127).sub(1));
       expect(decimals).to.equal(18);
     });
-    it('should sequence 255 units', async () => {
+    it('should deposit 255 units', async () => {
       await sequencer.clones(10);
       await token.transfer(sequencer.address, expandTo18Decimals(255));
       await sequencer.deposit();
@@ -191,7 +214,7 @@ describe('Sequencer', async () => {
       expect(liquidity).to.equal(expandTo18Decimals(255));
       expect(decimals).to.equal(18);
     });
-    it('should sequence 10^9 - 1 units', async () => {
+    it('should deposit 10^9 - 1 units', async () => {
       const amount = expandTo18Decimals(BigNumber.from(10).pow(9).sub(1).toString());
       await sequencer.clones(30);
       await token.transfer(sequencer.address, amount);
@@ -235,7 +258,7 @@ describe('Sequencer', async () => {
 
   describe('#withdraw', async () => {
     beforeEach(async () => {
-      await token.approve(sequencer.address, MAX_UINT256);
+      await loadFixture(withdrawFixture);
     });
 
     it('should withdraw non-zero on non-zero liquidity', async () => {
