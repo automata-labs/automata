@@ -10,7 +10,6 @@ import "@yield-protocol/utils-v2/contracts/token/IERC20Metadata.sol";
 
 import "./Shard.sol";
 import "../interfaces/IShard.sol";
-import "../interfaces/callbacks/IDelegatee.sol";
 import "../interfaces/external/IERC20CompLike.sol";
 import "../libraries/access/Access.sol";
 import "../libraries/math/Cursor.sol";
@@ -142,37 +141,6 @@ contract Sequencer is ISequencer, Access {
         emit Withdrawn(liquidity);
 
         return amount;
-    }
-
-    function delegateLoan(uint256 cursor, address delegatee, bytes calldata data) external {
-        IShard(shards[cursor]).delegate(underlying, delegatee);
-
-        require(
-            IDelegatee(msg.sender).onDelegateLoan(msg.sender, underlying, cursor, delegatee, data)
-                == keccak256("Delegatee.onDelegateLoan"),
-            "Callback failed"
-        );
-
-        IShard(shards[cursor]).delegate(underlying, shards[cursor]);
-    }
-
-    function delegateLoans(
-        uint256[] memory cursorees,
-        address[] memory delegatees,
-        bytes calldata data
-    ) external {
-        for (uint256 i = 0; i < cursorees.length; i++) {
-            IShard(shards[cursorees[i]]).delegate(underlying, delegatees[i]);
-        }
-
-        require(
-            IDelegatee(msg.sender).onDelegateLoans(msg.sender, underlying, cursorees, delegatees, data) == keccak256("Delegatee.onDelegateLoan"),
-            "Callback failed"
-        );
-
-        for (uint256 i = 0; i < cursorees.length; i++) {
-            IShard(shards[cursorees[i]]).delegate(underlying, shards[cursorees[i]]);
-        }
     }
 
     /// @inheritdoc ISequencerFunctions
