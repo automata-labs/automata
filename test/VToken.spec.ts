@@ -1,13 +1,13 @@
 import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
-import { AToken, ERC20CompLike, Kernel, OperatorA, Sequencer } from '../typechain';
+import { VToken, ERC20CompLike, Kernel, OperatorA, Sequencer } from '../typechain';
 import { erc20CompLikeFixture } from './shared/fixtures';
 import { deploy, expandTo18Decimals, MAX_UINT256, ROOT } from './shared/utils';
 
 const { createFixtureLoader, provider } = waffle;
 
-describe('AToken', async () => {
+describe('VToken', async () => {
   let abi = new ethers.utils.AbiCoder();
   let loadFixture;
   let wallet;
@@ -20,7 +20,7 @@ describe('AToken', async () => {
   let sequencer: Sequencer;
   let operator;
 
-  let aToken: AToken;
+  let vToken: VToken;
 
   const read = (tokenAddr, walletAddr) => {
     return kernel.read(ethers.utils.keccak256(abi.encode(['address', 'address'], [tokenAddr, walletAddr])));
@@ -37,10 +37,10 @@ describe('AToken', async () => {
     kernel = (await deploy('Kernel')) as Kernel;
     sequencer = (await deploy('Sequencer', token.address)) as Sequencer;
     operator = (await deploy('OperatorA', kernel.address, token.address)) as OperatorA;
-    aToken = (await deploy('AToken', kernel.address, token.address, "AToken", "ATOK")) as AToken;
+    vToken = (await deploy('VToken', kernel.address, token.address, "VToken", "ATOK")) as VToken;
 
     await kernel.grantRole(ROOT, operator.address);
-    await kernel.grantRole(ROOT, aToken.address);
+    await kernel.grantRole(ROOT, vToken.address);
     await sequencer.grantRole(ROOT, operator.address);
     await operator.set(operator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
     await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(10000)])); 
@@ -68,28 +68,28 @@ describe('AToken', async () => {
     });
 
     it('should mint', async () => {
-      await join(wallet, aToken.address, wallet.address, expandTo18Decimals(100));
-      expect((await read(token.address, aToken.address)).x).to.equal(expandTo18Decimals(100));
-      expect((await read(token.address, aToken.address)).y).to.equal(0);
-      expect((await read(token.address, wallet.address)).x).to.equal(0);
-      expect((await read(token.address, wallet.address)).y).to.equal(expandTo18Decimals(100));
+      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
+      expect((await read(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await read(token.address, wallet.address)).y).to.equal(0);
+      expect((await read(token.address, vToken.address)).x).to.equal(0);
+      expect((await read(token.address, vToken.address)).y).to.equal(expandTo18Decimals(100));
       
       // mint
-      expect(await aToken.balanceOf(wallet.address)).to.equal(0);
-      await aToken.mint(wallet.address);
-      expect(await aToken.totalSupply()).to.equal(expandTo18Decimals(100));
-      expect(await aToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(100));
+      expect(await vToken.balanceOf(wallet.address)).to.equal(0);
+      await vToken.mint(wallet.address);
+      expect(await vToken.totalSupply()).to.equal(expandTo18Decimals(100));
+      expect(await vToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(100));
 
       // mint again to see nothing happens
-      await expect(aToken.mint(wallet.address)).to.be.revertedWith('0');
+      await expect(vToken.mint(wallet.address)).to.be.revertedWith('0');
     });
     it('should revert when minting zero', async () => {
-      await expect(aToken.mint(wallet.address)).to.be.revertedWith('0');
+      await expect(vToken.mint(wallet.address)).to.be.revertedWith('0');
     });
     it('should emit an event', async () => {
-      await join(wallet, aToken.address, wallet.address, expandTo18Decimals(100));
-      await expect(aToken.mint(wallet.address))
-        .to.emit(aToken, 'Transfer')
+      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
+      await expect(vToken.mint(wallet.address))
+        .to.emit(vToken, 'Transfer')
         .withArgs(ethers.constants.AddressZero, wallet.address, expandTo18Decimals(100));
     });
   });
@@ -101,16 +101,16 @@ describe('AToken', async () => {
 
     it('should burn', async () => {
       // join & mint
-      await join(wallet, aToken.address, wallet.address, expandTo18Decimals(100));
-      await aToken.mint(wallet.address);
-      expect(await aToken.totalSupply()).to.equal(expandTo18Decimals(100));
-      expect(await aToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(100));
+      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
+      await vToken.mint(wallet.address);
+      expect(await vToken.totalSupply()).to.equal(expandTo18Decimals(100));
+      expect(await vToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(100));
 
       // burn & join
-      await aToken.transfer(aToken.address, expandTo18Decimals(100));
-      await aToken.burn(wallet.address);
-      expect((await read(token.address, aToken.address)).x).to.equal(0);
-      expect((await read(token.address, aToken.address)).y).to.equal(0);
+      await vToken.transfer(vToken.address, expandTo18Decimals(100));
+      await vToken.burn(wallet.address);
+      expect((await read(token.address, vToken.address)).x).to.equal(0);
+      expect((await read(token.address, vToken.address)).y).to.equal(0);
       expect((await read(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
       expect((await read(token.address, wallet.address)).y).to.equal(expandTo18Decimals(100));
 
@@ -120,15 +120,15 @@ describe('AToken', async () => {
       expect(await token.balanceOf(other1.address)).to.equal(expandTo18Decimals(100));
     });
     it('should revert when burning zero', async () => {
-      await expect(aToken.burn(wallet.address)).to.be.revertedWith('0');
+      await expect(vToken.burn(wallet.address)).to.be.revertedWith('0');
     });
     it('should emit an event', async () => {
-      await join(wallet, aToken.address, wallet.address, expandTo18Decimals(100));
-      await aToken.mint(wallet.address);
-      await aToken.transfer(aToken.address, expandTo18Decimals(100));
-      await expect(aToken.burn(wallet.address))
-        .to.emit(aToken, 'Transfer')
-        .withArgs(aToken.address, ethers.constants.AddressZero, expandTo18Decimals(100));
+      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
+      await vToken.mint(wallet.address);
+      await vToken.transfer(vToken.address, expandTo18Decimals(100));
+      await expect(vToken.burn(wallet.address))
+        .to.emit(vToken, 'Transfer')
+        .withArgs(vToken.address, ethers.constants.AddressZero, expandTo18Decimals(100));
     });
   });
 });
