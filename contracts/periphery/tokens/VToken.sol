@@ -32,15 +32,15 @@ contract VToken is IToken, ERC20Permit {
     /// @inheritdoc IToken
     function mint(address to) external override returns (uint256 amount) {
         amount = kernel.get(underlying, address(this)).y - _totalSupply.u128();
-        if (amount > 0) require(_mint(to, amount), "MINT");
+        require(amount > 0, "0");
+        require(_mint(to, amount), "MINT");
     }
 
     /// @inheritdoc IToken
     function burn(address to) external override returns (uint256 amount) {
         amount = _balanceOf[address(this)];
-        if (amount > 0) {
-            require(_burn(address(this), amount), "BURN");
-            kernel.transfer(underlying, address(this), to, 0, amount.u128());
-        }
+        require(amount > 0, "0");
+        require(_burn(address(this), amount), "BURN");
+        kernel.transfer(underlying, address(this), to, 0, amount.u128());
     }
 }
