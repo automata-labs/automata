@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "../data/State.sol";
 import "../math/Cast.sol";
 import "../math/Delta.sol";
 import "../math/FixedPoint.sol";
@@ -11,31 +10,37 @@ library Unit {
     using Cast for uint256;
     using Delta for uint128;
 
+    struct Data {
+        uint128 x;
+        uint128 y;
+        uint256 x128;
+    }
+
     function get(
-        mapping(bytes32 => State.Data) storage self,
+        mapping(bytes32 => Unit.Data) storage self,
         address underlying,
         address owner
-    ) internal view returns (State.Data storage) {
+    ) internal view returns (Unit.Data storage) {
         return self[keccak256(abi.encode(underlying, owner))];
     }
 
     function normalize(
-        State.Data memory self,
+        Unit.Data memory self,
         uint256 x128
-    ) internal pure returns (State.Data memory) {
+    ) internal pure returns (Unit.Data memory) {
         self.y += FullMath.mulDiv(self.x, x128 - self.x128, FixedPoint.Q128).u128();
         self.x128 = x128;
 
         return self;
     }
 
-    function modify1(
-        State.Data storage self,
+    function modify(
+        Unit.Data storage self,
         int128 dx,
         int128 dy,
         uint256 x128
     ) internal {
-        State.Data memory cache = self;
+        Unit.Data memory cache = self;
 
         cache.x = cache.x.addDelta(dx);
         cache.y += FullMath.mulDiv(self.x, x128 - self.x128, FixedPoint.Q128).u128();
