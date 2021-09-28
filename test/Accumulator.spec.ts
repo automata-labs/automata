@@ -132,16 +132,16 @@ describe('Accumulator', async () => {
       expect((await globs(token.address)).y).to.equal(expandTo18Decimals(200));
       expect((await globs(token.address)).x128).to.equal(Q128.mul(3).div(2));
     });
+    it('should revert if growing when nothing staked', async () => {
+      await join(wallet, wallet.address, accumulator.address, expandTo18Decimals(100));
+      await expect(accumulator.grow(token.address)).to.be.reverted;
+    });
     it('should emit an event', async () => {
       await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
       await accumulator.stake(token.address, wallet.address);
       await expect(accumulator.grow(token.address))
         .to.emit(accumulator, 'Grown')
         .withArgs(token.address, expandTo18Decimals(100));
-    });
-    it('should revert if growing when nothing staked', async () => {
-      await join(wallet, wallet.address, accumulator.address, expandTo18Decimals(100));
-      await expect(accumulator.grow(token.address)).to.be.reverted;
     });
   });
 
@@ -207,15 +207,15 @@ describe('Accumulator', async () => {
       expect((await globs(token.address)).y).to.equal(0);
       expect((await globs(token.address)).x128).to.equal(0);
     });
+    it('should revert when staking zero', async () => {
+      await expect(accumulator.stake(token.address, wallet.address))
+        .to.be.revertedWith('0');
+    });
     it('should emit an event', async () => {
       await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
       await expect(accumulator.stake(token.address, wallet.address))
         .to.emit(accumulator, 'Staked')
         .withArgs(wallet.address, token.address, wallet.address, expandTo18Decimals(100));
-    });
-    it('should revert when staking zero', async () => {
-      await expect(accumulator.stake(token.address, wallet.address))
-        .to.be.revertedWith('0');
     });
   });
 
@@ -301,6 +301,12 @@ describe('Accumulator', async () => {
       expect((await globs(token.address)).x).to.equal(expandTo18Decimals(100));
       expect((await globs(token.address)).y).to.equal(expandTo18Decimals(25));
     });
+    it('should revert when collecting zero', async () => {
+      await expect(accumulator.collect(token.address, wallet.address, 0))
+        .to.be.revertedWith('0');
+      await expect(accumulator.collect(token.address, wallet.address, 1))
+        .to.be.revertedWith('0');
+    });
     it('should emit an event', async () => {
       await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
       await accumulator.stake(token.address, wallet.address);
@@ -308,12 +314,6 @@ describe('Accumulator', async () => {
       await expect(accumulator.collect(token.address, wallet.address, expandTo18Decimals(100)))
         .to.emit(accumulator, 'Collected')
         .withArgs(wallet.address, token.address, wallet.address, expandTo18Decimals(100));
-    });
-    it('should revert when collecting zero', async () => {
-      await expect(accumulator.collect(token.address, wallet.address, 0))
-        .to.be.revertedWith('0');
-      await expect(accumulator.collect(token.address, wallet.address, 1))
-        .to.be.revertedWith('0');
     });
   });
 });
