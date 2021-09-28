@@ -151,7 +151,6 @@ describe('OperatorA', async () => {
       await join(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
       expect(await read(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
     });
-    it.skip('should emit an event', async () => {});
     it('should revert when zero tokens', async () => {
       await expect(operator.join(wallet.address, wallet.address)).to.be.revertedWith('0');
     });
@@ -171,6 +170,7 @@ describe('OperatorA', async () => {
       expect(await read(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
     });
     it.skip('should revert when overflowing sequencer space', async () => {});
+    it.skip('should emit an event', async () => {});
   });
 
   describe('#exit', async () => {
@@ -193,10 +193,10 @@ describe('OperatorA', async () => {
     it.skip('should exit line', async () => {});
     it.skip('should exit on non-symmetric slot', async () => {});
     it.skip('should exit when governor is active', async () => {});
-    it.skip('should emit an event', async () => {});
     it.skip('should revert when exiting zero tokens', async () => {});
     it.skip('should revert when exiting on zero shards', async () => {});
     it.skip('should revert when underflowing sequencer space', async () => {});
+    it.skip('should emit an event', async () => {});
   });
 
   describe('#use', async () => {
@@ -233,6 +233,7 @@ describe('OperatorA', async () => {
       
       await expect(operator.use(1, 1)).to.be.revertedWith('0');
     });
+    it.skip('should emit an event', async () => {});
   });
 
   describe('#route', async () => {
@@ -335,5 +336,6 @@ describe('OperatorA', async () => {
       await operator.route(1, 1);
       await expect(operator.route(1, 0)).to.be.revertedWith('F0');
     });
+    it.skip('should emit an event', async () => {});
   });
 });
