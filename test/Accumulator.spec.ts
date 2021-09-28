@@ -5,7 +5,6 @@ import { Accumulator, ERC20CompLike, Kernel, OperatorA, Sequencer } from '../typ
 import { erc20CompLikeFixture } from './shared/fixtures';
 import { deploy, expandTo18Decimals, MAX_UINT256, Q128, ROOT } from './shared/utils';
 
-const { BigNumber } = ethers;
 const { createFixtureLoader, provider } = waffle;
 
 describe('Accumulator', async () => {
@@ -26,8 +25,16 @@ describe('Accumulator', async () => {
     return kernel.read(ethers.utils.keccak256(abi.encode(['address', 'address'], [tokenAddr, walletAddr])));
   };
 
+  const globs = async (underlying: string) => {
+    return accumulator.globs(underlying);
+  };
+
   const units = async (underlying: string, owner: string) => {
     return accumulator.units(ethers.utils.keccak256(abi.encode(['address', 'address'], [underlying, owner])));
+  };
+
+  const normalized = async (underlying: string, owner: string) => {
+    return accumulator.get(underlying, owner);
   };
 
   const join = async (caller, tox, toy, amount) => {
@@ -68,9 +75,39 @@ describe('Accumulator', async () => {
       await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
       await accumulator.stake(token.address, wallet.address);
       await accumulator.grow(token.address);
-      expect((await accumulator.get(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
-      expect((await accumulator.get(token.address, wallet.address)).y).to.equal(expandTo18Decimals(100));
-      expect((await accumulator.get(token.address, wallet.address)).x128).to.equal(Q128);
+
+      // `wallet`
+      expect((await units(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await units(token.address, wallet.address)).y).to.equal(0);
+      expect((await units(token.address, wallet.address)).x128).to.equal(0);
+
+      // `wallet`
+      expect((await normalized(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await normalized(token.address, wallet.address)).y).to.equal(expandTo18Decimals(100));
+      expect((await normalized(token.address, wallet.address)).x128).to.equal(Q128);
+
+      expect((await globs(token.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await globs(token.address)).y).to.equal(expandTo18Decimals(100));
+      expect((await globs(token.address)).x128).to.equal(Q128);
+    });
+    it('should grow dust amount', async () => {
+      await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
+      await accumulator.stake(token.address, wallet.address);
+      await operator.transfer(accumulator.address, 0, expandTo18Decimals(1));
+      await accumulator.grow(token.address);
+
+      // `wallet`
+      expect((await units(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await units(token.address, wallet.address)).y).to.equal(0);
+      expect((await units(token.address, wallet.address)).x128).to.equal(0);
+      expect((await normalized(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
+      // rounds down, so sub 1
+      expect((await normalized(token.address, wallet.address)).y).to.equal(expandTo18Decimals(1).sub(1));
+      expect((await normalized(token.address, wallet.address)).x128).to.equal(Q128.div(100));
+
+      expect((await globs(token.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await globs(token.address)).y).to.equal(expandTo18Decimals(1));
+      expect((await globs(token.address)).x128).to.equal(Q128.div(100));
     });
     it('should grow for multiple stakers', async () => {
       await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
@@ -81,13 +118,26 @@ describe('Accumulator', async () => {
       await accumulator.stake(token.address, other1.address);
       await accumulator.grow(token.address);
 
-      const x128 = (await accumulator.globs(token.address)).x128;
-      expect((await accumulator.get(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
-      expect((await accumulator.get(token.address, wallet.address)).y).to.equal(expandTo18Decimals(150));
-      expect((await accumulator.get(token.address, wallet.address)).x128).to.equal(x128);
-      expect((await accumulator.get(token.address, other1.address)).x).to.equal(expandTo18Decimals(100));
-      expect((await accumulator.get(token.address, other1.address)).y).to.equal(expandTo18Decimals(50));
-      expect((await accumulator.get(token.address, other1.address)).x128).to.equal(x128);
+      // `wallet`
+      expect((await normalized(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await normalized(token.address, wallet.address)).y).to.equal(expandTo18Decimals(150));
+      expect((await normalized(token.address, wallet.address)).x128).to.equal((await globs(token.address)).x128);
+      
+      // `other1`
+      expect((await normalized(token.address, other1.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await normalized(token.address, other1.address)).y).to.equal(expandTo18Decimals(50));
+      expect((await normalized(token.address, other1.address)).x128).to.equal((await globs(token.address)).x128);
+
+      expect((await globs(token.address)).x).to.equal(expandTo18Decimals(200));
+      expect((await globs(token.address)).y).to.equal(expandTo18Decimals(200));
+      expect((await globs(token.address)).x128).to.equal(Q128.mul(3).div(2));
+    });
+    it('should emit an event', async () => {
+      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await accumulator.stake(token.address, wallet.address);
+      await expect(accumulator.grow(token.address))
+        .to.emit(accumulator, 'Grown')
+        .withArgs(token.address, expandTo18Decimals(100));
     });
     it('should revert if growing when nothing staked', async () => {
       await join(wallet, wallet.address, accumulator.address, expandTo18Decimals(100));
@@ -101,50 +151,118 @@ describe('Accumulator', async () => {
     });
 
     it('should stake', async () => {
+      // join and stake
       await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
       await accumulator.stake(token.address, wallet.address);
-      expect(await units(token.address, wallet.address)).to.eql([
-        expandTo18Decimals(100),
-        BigNumber.from(0),
-        BigNumber.from(0)
-      ]);
+      expect((await units(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await units(token.address, wallet.address)).y).to.equal(0);
+      expect((await units(token.address, wallet.address)).x128).to.equal(0);
+
+      expect((await globs(token.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await globs(token.address)).y).to.equal(0);
+      expect((await globs(token.address)).x128).to.equal(0);
     });
     it('should stake to another account', async () => {
+      // join with `wallet`, stake with `other1`
       await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
       await accumulator.stake(token.address, other1.address);
-      expect(await units(token.address, other1.address)).to.eql([
-        expandTo18Decimals(100),
-        BigNumber.from(0),
-        BigNumber.from(0)
-      ]);
+
+      expect((await units(token.address, wallet.address)).x).to.equal(0);
+      expect((await units(token.address, wallet.address)).y).to.equal(0);
+      expect((await units(token.address, wallet.address)).x128).to.equal(0);
+
+      expect((await units(token.address, other1.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await units(token.address, other1.address)).y).to.equal(0);
+      expect((await units(token.address, other1.address)).x128).to.equal(0);
+
+      expect((await globs(token.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await globs(token.address)).y).to.equal(0);
+      expect((await globs(token.address)).x128).to.equal(0);
     });
-    it.skip('should stake when x128 is non-zero');
-    it('should stake to non-contract token address', async () => {
-      await accumulator.stake(wallet.address, other1.address);
-      expect(await units(wallet.address, other1.address)).to.eql([
-        BigNumber.from(0),
-        BigNumber.from(0),
-        BigNumber.from(0)
-      ]);
+    it('should stake and auto-update `y`', async () => {
+      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await accumulator.stake(token.address, wallet.address);
+      await accumulator.grow(token.address);
+
+      // should update `y` when staking on existing stake
+      await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
+      await accumulator.stake(token.address, wallet.address);
+      expect((await units(token.address, wallet.address)).x).to.equal(expandTo18Decimals(200));
+      expect((await units(token.address, wallet.address)).y).to.equal(expandTo18Decimals(100));
+      expect((await units(token.address, wallet.address)).x128).to.equal(Q128);
+
+      expect((await globs(token.address)).x).to.equal(expandTo18Decimals(200));
+      expect((await globs(token.address)).y).to.equal(expandTo18Decimals(100));
+      expect((await globs(token.address)).x128).to.equal(Q128);
+    });
+    it('should stake from multiple accounts', async () => {
+      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await accumulator.stake(token.address, wallet.address);
+      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(50));
+      await accumulator.stake(token.address, other1.address);
+      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(25));
+      await accumulator.stake(token.address, other2.address);
+
+      expect((await globs(token.address)).x).to.equal(expandTo18Decimals(175));
+      expect((await globs(token.address)).y).to.equal(0);
+      expect((await globs(token.address)).x128).to.equal(0);
+    });
+    it('should emit an event', async () => {
+      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await expect(accumulator.stake(token.address, wallet.address))
+        .to.emit(accumulator, 'Staked')
+        .withArgs(wallet.address, token.address, wallet.address, expandTo18Decimals(100));
+    });
+    it('should revert when staking zero', async () => {
+      await expect(accumulator.stake(token.address, wallet.address))
+        .to.be.revertedWith('0');
     });
   });
 
   describe('#unstake', async () => {
+    beforeEach(async () => {
+      await loadFixture(fixture);
+    });
+
     it('should unstake', async () => {
+      // stake
       await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
       await accumulator.stake(token.address, wallet.address);
+      expect((await units(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await units(token.address, wallet.address)).y).to.equal(0);
+      expect((await units(token.address, wallet.address)).x128).to.equal(0);
 
-      expect(await units(token.address, wallet.address)).to.eql([
-        expandTo18Decimals(100),
-        BigNumber.from(0),
-        BigNumber.from(0),
-      ]);
+      // unstake all
       await accumulator.unstake(token.address, wallet.address, expandTo18Decimals(100));
-      expect(await units(token.address, wallet.address)).to.eql([
-        BigNumber.from(0),
-        BigNumber.from(0),
-        BigNumber.from(0),
-      ]);
+      expect((await units(token.address, wallet.address)).x).to.equal(0);
+      expect((await units(token.address, wallet.address)).y).to.equal(0);
+      expect((await units(token.address, wallet.address)).x128).to.equal(0);
+    });
+    it('should unstake and auto-update `y`', async () => {
+      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await accumulator.stake(token.address, wallet.address);
+      await accumulator.grow(token.address);
+
+      // should update `y` when staking on existing stake
+      await accumulator.unstake(token.address, wallet.address, expandTo18Decimals(100));
+      expect((await units(token.address, wallet.address)).x).to.equal(0);
+      expect((await units(token.address, wallet.address)).y).to.equal(expandTo18Decimals(100));
+      expect((await units(token.address, wallet.address)).x128).to.equal(Q128);
+    });
+    it('should revert when unstaking zero', async () => {
+      await expect(accumulator.unstake(token.address, wallet.address, 0))
+        .to.be.revertedWith('0');
+    });
+    it('should revert when unstake underflow', async () => {
+      await expect(accumulator.unstake(token.address, wallet.address, 1))
+        .to.be.revertedWith('0x11');
+    });
+    it('should emit an event', async () => {
+      await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
+      await accumulator.stake(token.address, wallet.address);
+      await expect(accumulator.unstake(token.address, wallet.address, expandTo18Decimals(100)))
+        .to.emit(accumulator, 'Unstaked')
+        .withArgs(wallet.address, token.address, wallet.address, expandTo18Decimals(100));
     });
   });
 
@@ -158,26 +276,44 @@ describe('Accumulator', async () => {
       await accumulator.stake(token.address, wallet.address);
       await accumulator.grow(token.address);
       await accumulator.collect(token.address, wallet.address, expandTo18Decimals(100));
-      expect((await accumulator.globs(token.address)).x).to.equal(expandTo18Decimals(100));
-      expect((await accumulator.globs(token.address)).y).to.equal(0);
-      expect((await accumulator.get(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
-      expect((await accumulator.get(token.address, wallet.address)).y).to.equal(0);
+
+      expect((await normalized(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await normalized(token.address, wallet.address)).y).to.equal(0);
       expect((await read(token.address, wallet.address)).y).to.equal(expandTo18Decimals(100));
       expect((await read(token.address, accumulator.address)).y).to.equal(0);
+
+      expect((await globs(token.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await globs(token.address)).y).to.equal(0);
     });
     it('should collect partially', async () => {
       await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
       await accumulator.stake(token.address, wallet.address);
       await accumulator.grow(token.address);
       await accumulator.collect(token.address, wallet.address, expandTo18Decimals(75));
-      expect((await accumulator.globs(token.address)).x).to.equal(expandTo18Decimals(100));
-      expect((await accumulator.globs(token.address)).y).to.equal(expandTo18Decimals(25));
-      expect((await accumulator.get(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
-      expect((await accumulator.get(token.address, wallet.address)).y).to.equal(expandTo18Decimals(25));
+
+      expect((await normalized(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await normalized(token.address, wallet.address)).y).to.equal(expandTo18Decimals(25));
       expect((await read(token.address, wallet.address)).x).to.equal(0);
       expect((await read(token.address, wallet.address)).y).to.equal(expandTo18Decimals(75));
       expect((await read(token.address, accumulator.address)).x).to.equal(expandTo18Decimals(100));
       expect((await read(token.address, accumulator.address)).y).to.equal(expandTo18Decimals(25));
+
+      expect((await globs(token.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await globs(token.address)).y).to.equal(expandTo18Decimals(25));
+    });
+    it('should emit an event', async () => {
+      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await accumulator.stake(token.address, wallet.address);
+      await accumulator.grow(token.address);
+      await expect(accumulator.collect(token.address, wallet.address, expandTo18Decimals(100)))
+        .to.emit(accumulator, 'Collected')
+        .withArgs(wallet.address, token.address, wallet.address, expandTo18Decimals(100));
+    });
+    it('should revert when collecting zero', async () => {
+      await expect(accumulator.collect(token.address, wallet.address, 0))
+        .to.be.revertedWith('0');
+      await expect(accumulator.collect(token.address, wallet.address, 1))
+        .to.be.revertedWith('0');
     });
   });
 });

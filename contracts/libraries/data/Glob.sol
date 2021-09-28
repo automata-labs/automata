@@ -1,21 +1,26 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "../data/State.sol";
 import "../math/Delta.sol";
 
-library Global {
+library Glob {
     using Delta for uint128;
 
+    struct Data {
+        uint128 x;
+        uint128 y;
+        uint256 x128;
+    }
+
     function get(
-        mapping(address => State.Data) storage self,
+        mapping(address => Glob.Data) storage self,
         address underlying
-    ) internal view returns (State.Data storage) {
+    ) internal view returns (Glob.Data storage) {
         return self[underlying];
     }
 
-    function modify0(
-        State.Data storage self,
+    function modify(
+        Glob.Data storage self,
         int128 dx,
         int128 dy,
         uint256 x128a
