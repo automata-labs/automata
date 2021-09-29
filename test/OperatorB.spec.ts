@@ -3,12 +3,13 @@ import { ethers, waffle } from 'hardhat';
 
 import { Accumulator, ERC20CompLike, GovernorBravoMock, Kernel, Linear, OperatorB, Sequencer } from '../typechain';
 import { erc20CompLikeFixture, governorBravoFixture } from './shared/fixtures';
-import { deploy, expandTo18Decimals, MAX_UINT256, mineBlocks, ROOT } from './shared/utils';
+import { deploy, expandTo18Decimals, evmMiner, ROOT } from './shared/utils';
 
-const { BigNumber } = ethers;
+const { BigNumber, constants } = ethers;
+const { MaxUint256 } = constants;
 const { createFixtureLoader, provider } = waffle;
 
-describe('OperatorB', async () => {
+describe.skip('OperatorB', async () => {
   let abi = new ethers.utils.AbiCoder();
   let loadFixture;
   let wallet;
@@ -58,8 +59,8 @@ describe('OperatorB', async () => {
   const joinFixture = async () => {
     await fixture();
 
-    await token.approve(operator.address, MAX_UINT256);
-    await token.approve(sequencer.address, MAX_UINT256);
+    await token.approve(operator.address, MaxUint256);
+    await token.approve(sequencer.address, MaxUint256);
     await sequencer.clones(10);
 
     await kernel.grantRole(ROOT, operator.address);
@@ -80,8 +81,8 @@ describe('OperatorB', async () => {
   const useFixture = async () => {
     await fixture();
 
-    await token.approve(operator.address, MAX_UINT256);
-    await token.approve(sequencer.address, MAX_UINT256);
+    await token.approve(operator.address, MaxUint256);
+    await token.approve(sequencer.address, MaxUint256);
     await sequencer.clones(10);
 
     await kernel.grantRole(ROOT, operator.address);
@@ -162,7 +163,7 @@ describe('OperatorB', async () => {
 
       await token.transfer(sequencer.address, expandTo18Decimals(10));
       await expect(operator.join(wallet.address, wallet.address)).to.be.revertedWith('OBS');
-      await mineBlocks(provider, (await governor.votingPeriod()).toNumber());
+      await evmMiner(provider, (await governor.votingPeriod()).toNumber());
       await operator.join(wallet.address, wallet.address);
       expect(await read(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
     });
@@ -244,7 +245,7 @@ describe('OperatorB', async () => {
       await propose(governor);
       await operator.use(2, 1);
 
-      await mineBlocks(
+      await evmMiner(
         provider,
         (await operator.timeline(2))[2].toNumber() - (await provider.getBlockNumber())
       );
@@ -269,7 +270,7 @@ describe('OperatorB', async () => {
       await propose(governor);
       await operator.use(2, 1);
 
-      await mineBlocks(
+      await evmMiner(
         provider,
         (await operator.timeline(2))[2].toNumber() - (await provider.getBlockNumber())
       );
@@ -292,7 +293,7 @@ describe('OperatorB', async () => {
       await propose(governor);
       await operator.use(2, 1);
 
-      await mineBlocks(
+      await evmMiner(
         provider,
         (await operator.timeline(2))[2].toNumber() - (await provider.getBlockNumber())
       );
@@ -316,7 +317,7 @@ describe('OperatorB', async () => {
       await operator.transfer(accumulator.address, 0, expandTo18Decimals(75));
       await operator.use(2, 1);
 
-      await mineBlocks(
+      await evmMiner(
         provider,
         (await operator.timeline(2))[2].toNumber() - (await provider.getBlockNumber())
       );

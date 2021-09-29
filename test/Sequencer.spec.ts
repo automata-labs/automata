@@ -2,12 +2,13 @@ import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 import * as _ from 'lodash';
 
-import { ERC20CompLike, GovernorBravoMock, Sequencer, Shard } from '../typechain';
 import { erc20CompLikeFixture, governorBravoFixture } from './shared/fixtures';
-import { deploy, expandTo18Decimals, MAX_UINT256 } from './shared/utils';
+import { deploy, expandTo18Decimals } from './shared/utils';
+import { ERC20CompLike, GovernorBravoMock, Sequencer, Shard } from '../typechain';
 
+const { BigNumber, constants, provider } = ethers;
+const { MaxUint256 } = constants;
 const { createFixtureLoader } = waffle;
-const { BigNumber, provider } = ethers;
 
 describe('Sequencer', async () => {
   let abi = new ethers.utils.AbiCoder();
@@ -30,22 +31,22 @@ describe('Sequencer', async () => {
   
   const cloneFixture = async () => {
     await fixture();
-    await token.approve(sequencer.address, MAX_UINT256);
+    await token.approve(sequencer.address, MaxUint256);
   };
 
   const clonesFixture = async () => {
     await fixture();
-    await token.approve(sequencer.address, MAX_UINT256);
+    await token.approve(sequencer.address, MaxUint256);
   };
 
   const depositFixture = async () => {
     await fixture();
-    await token.approve(sequencer.address, MAX_UINT256);
+    await token.approve(sequencer.address, MaxUint256);
   };
 
   const withdrawFixture = async () => {
     await fixture();
-    await token.approve(sequencer.address, MAX_UINT256);
+    await token.approve(sequencer.address, MaxUint256);
   };
 
   before('fixture loader', async () => {
@@ -85,7 +86,7 @@ describe('Sequencer', async () => {
       await expect(sequencer.clone()).to.be.revertedWith('TransferHelper::transferFrom: transferFrom failed');
     });
     it('should revert when token is approved but transfer fails', async () => {
-      await token.connect(other1).approve(sequencer.address, MAX_UINT256);
+      await token.connect(other1).approve(sequencer.address, MaxUint256);
       await expect(sequencer.connect(other1).clone()).to.be.revertedWith('TransferHelper::transferFrom: transferFrom failed');
     });
     it('should revert when external calling `initialize` on shard after cloning', async () => {
@@ -156,7 +157,7 @@ describe('Sequencer', async () => {
       await sequencer.clones(6);
       expect(await sequencer.cardinality()).to.equal(256);
       await expect(sequencer.clones(1)).to.be.revertedWith('MAX');
-      await expect(sequencer.clones(MAX_UINT256)).to.be.reverted;
+      await expect(sequencer.clones(MaxUint256)).to.be.reverted;
     });
     it('should revert when token is not approved', async () => {
       await sequencer.clones(10);
@@ -165,7 +166,7 @@ describe('Sequencer', async () => {
         .to.be.revertedWith('TransferHelper::transferFrom: transferFrom failed');
     });
     it('should revert when token is approved but transfer fails', async () => {
-      await token.connect(other1).approve(sequencer.address, MAX_UINT256);
+      await token.connect(other1).approve(sequencer.address, MaxUint256);
       await expect(sequencer.connect(other1).clones(1))
         .to.be.revertedWith('TransferHelper::transferFrom: transferFrom failed');
     });
@@ -259,26 +260,36 @@ describe('Sequencer', async () => {
       await loadFixture(withdrawFixture);
     });
 
-    it('should withdraw non-zero on non-zero liquidity', async () => {
+    it('should withdraw', async () => {
       await sequencer.clones(5);
       await token.transfer(sequencer.address, expandTo18Decimals(5));
       await sequencer.deposit();
+
       await sequencer.withdraw(other1.address, expandTo18Decimals(3));
       expect(await sequencer.liquidity()).to.equal(expandTo18Decimals(2));
       expect(await token.balanceOf(other1.address)).to.equal(expandTo18Decimals(3));
+    });
+    it('should withdraw with excess of 1', async () => {
+      await sequencer.clones(5);
+      await token.transfer(sequencer.address, expandTo18Decimals(3).add(1));
+      await sequencer.deposit();
+      await sequencer.withdraw(other1.address, expandTo18Decimals(3).add(1));
+      expect(await sequencer.liquidity()).to.equal(0);
+      expect(await token.balanceOf(other1.address)).to.equal(expandTo18Decimals(3).add(1));
     });
     it('should withdraw all from max deposit', async () => {
       await sequencer.clones(10);
       await token.transfer(sequencer.address, expandTo18Decimals(1023));
       await sequencer.deposit();
+
       await sequencer.withdraw(other1.address, expandTo18Decimals(1023));
       expect(await sequencer.liquidity()).to.equal(0);
       expect(await token.balanceOf(other1.address)).to.equal(expandTo18Decimals(1023));
     });
-    it('should revert when zero on zero liquidity', async () => {
+    it('should revert when withdrawing zero on zero liquidity', async () => {
       await expect(sequencer.withdraw(wallet.address, 0)).to.be.revertedWith("0");
     });
-    it('should revert when zero on non-zero liquidity', async () => {
+    it('should revert when withdrawing zero on non-zero liquidity', async () => {
       await sequencer.clones(5);
       await token.transfer(sequencer.address, expandTo18Decimals(5));
       await sequencer.deposit();

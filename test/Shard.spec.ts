@@ -2,8 +2,8 @@ import { expect, use } from 'chai';
 import { ethers, waffle } from 'hardhat';
 import { solidity } from 'ethereum-waffle';
 
-import { Executable, Shard, ShardMock } from '../typechain';
 import { deploy } from './shared/utils';
+import { Executable, Shard, ShardMock } from '../typechain';
 
 const { createFixtureLoader } = waffle;
 

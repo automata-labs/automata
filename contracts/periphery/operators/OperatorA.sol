@@ -58,10 +58,10 @@ contract OperatorA is Operator {
         if (amount > (1 << checkpoint.cursor) - 1) {
             if (checkpoint.cursor != cursor) {
                 uint256 head = max - ((1 << checkpoint.cursor) - 1);
-                require((amount - head) & mask == mask, "F0");
+                require((amount - head) & mask == mask, "F");
             }
         } else {
-            require((amount & mask) == mask, "F1");
+            require((amount & mask) == mask, "F");
         }
 
         // cast vote

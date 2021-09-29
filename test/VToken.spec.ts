@@ -1,10 +1,11 @@
 import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
-import { VToken, ERC20CompLike, Kernel, OperatorA, Sequencer } from '../typechain';
 import { erc20CompLikeFixture } from './shared/fixtures';
-import { deploy, expandTo18Decimals, MAX_UINT256, ROOT } from './shared/utils';
+import { deploy, expandTo18Decimals, ROOT } from './shared/utils';
+import { VToken, ERC20CompLike, Kernel, OperatorA, Sequencer } from '../typechain';
 
+const { MaxUint256 } = ethers.constants;
 const { createFixtureLoader, provider } = waffle;
 
 describe('VToken', async () => {
@@ -45,7 +46,7 @@ describe('VToken', async () => {
     await operator.set(operator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
     await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(10000)])); 
 
-    await token.approve(sequencer.address, MAX_UINT256);
+    await token.approve(sequencer.address, MaxUint256);
     await sequencer.clones(10);
   };
 
