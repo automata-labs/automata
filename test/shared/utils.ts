@@ -20,16 +20,10 @@ export function expandWithDecimals(n: number | string, decimals: number | string
  * Constants
  */
 
-export const MAX_UINT256 = BigNumber.from(2).pow(256).sub(1);
-export const MAX_UINT128 = BigNumber.from(2).pow(128).sub(1);
-export const MAX_INT128 = BigNumber.from(2).pow(127).sub(1);
-
+export const MaxUint128 = BigNumber.from(2).pow(128).sub(1);
 export const Q128 = BigNumber.from(2).pow(128);
-export const TIMELOCK_DELAY = 60 * 60 * 24 * 2;
-export const SECONDS_PER_YEAR = 31536000;
-export const WETH = { address: '0x55560De96b4F5449E5f7613A36f7B9340E6527F9' };
-export const WETH7 = { address: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619' };
 export const ROOT = ethers.utils.arrayify('0x00000000');
+export const TIMELOCK_DELAY = 60 * 60 * 24 * 2;
 
 /**
  * Blockchain

@@ -7,7 +7,6 @@ import {
   evmBlockNumber,
   expandTo18Decimals,
   expandWithDecimals,
-  MAX_UINT256,
   evmMiner,
   ROOT,
 } from "./shared/utils";
@@ -23,6 +22,7 @@ import {
 } from "../typechain";
 
 const { BigNumber } = ethers;
+const { MaxUint256 } = ethers.constants;
 const { loadFixture, provider } = waffle;
 
 describe("OperatorA", async () => {
@@ -108,8 +108,8 @@ describe("OperatorA", async () => {
   const joinFixture = async () => {
     await fixture();
 
-    await token.approve(operator.address, MAX_UINT256);
-    await token.approve(sequencer.address, MAX_UINT256);
+    await token.approve(operator.address, MaxUint256);
+    await token.approve(sequencer.address, MaxUint256);
     await sequencer.clones(10);
 
     await kernel.grantRole(ROOT, operator.address);
@@ -127,8 +127,8 @@ describe("OperatorA", async () => {
   const useFixture = async () => {
     await fixture();
 
-    await token.approve(operator.address, MAX_UINT256);
-    await token.approve(sequencer.address, MAX_UINT256);
+    await token.approve(operator.address, MaxUint256);
+    await token.approve(sequencer.address, MaxUint256);
     await sequencer.clones(10);
 
     await kernel.grantRole(ROOT, operator.address);
@@ -161,16 +161,16 @@ describe("OperatorA", async () => {
   const routeLinearFixture = async () => {
     await routeBaseFixture();
 
-    await token.approve(operator.address, MAX_UINT256);
-    await token.approve(sequencer.address, MAX_UINT256);
+    await token.approve(operator.address, MaxUint256);
+    await token.approve(sequencer.address, MaxUint256);
     await sequencer.clones(3);
   };
 
   const routeMiscFixture = async () => {
     await routeBaseFixture();
 
-    await token.approve(operator.address, MAX_UINT256);
-    await token.approve(sequencer.address, MAX_UINT256);
+    await token.approve(operator.address, MaxUint256);
+    await token.approve(sequencer.address, MaxUint256);
     await sequencer.clones(10);
   };
 

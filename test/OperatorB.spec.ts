@@ -3,9 +3,10 @@ import { ethers, waffle } from 'hardhat';
 
 import { Accumulator, ERC20CompLike, GovernorBravoMock, Kernel, Linear, OperatorB, Sequencer } from '../typechain';
 import { erc20CompLikeFixture, governorBravoFixture } from './shared/fixtures';
-import { deploy, expandTo18Decimals, MAX_UINT256, evmMiner, ROOT, evmMine } from './shared/utils';
+import { deploy, expandTo18Decimals, evmMiner, ROOT } from './shared/utils';
 
-const { BigNumber } = ethers;
+const { BigNumber, constants } = ethers;
+const { MaxUint256 } = constants;
 const { createFixtureLoader, provider } = waffle;
 
 describe.skip('OperatorB', async () => {
@@ -58,8 +59,8 @@ describe.skip('OperatorB', async () => {
   const joinFixture = async () => {
     await fixture();
 
-    await token.approve(operator.address, MAX_UINT256);
-    await token.approve(sequencer.address, MAX_UINT256);
+    await token.approve(operator.address, MaxUint256);
+    await token.approve(sequencer.address, MaxUint256);
     await sequencer.clones(10);
 
     await kernel.grantRole(ROOT, operator.address);
@@ -80,8 +81,8 @@ describe.skip('OperatorB', async () => {
   const useFixture = async () => {
     await fixture();
 
-    await token.approve(operator.address, MAX_UINT256);
-    await token.approve(sequencer.address, MAX_UINT256);
+    await token.approve(operator.address, MaxUint256);
+    await token.approve(sequencer.address, MaxUint256);
     await sequencer.clones(10);
 
     await kernel.grantRole(ROOT, operator.address);

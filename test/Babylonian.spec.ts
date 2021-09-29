@@ -1,9 +1,10 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { BabylonianTest } from '../typechain';
-import { deploy, MAX_UINT256 } from './shared/utils';
+import { deploy } from './shared/utils';
 
 const { BigNumber } = ethers;
+const { MaxUint256 } = ethers.constants;
 
 describe('Babylonian', () => {
   let wallet;
@@ -37,7 +38,7 @@ describe('Babylonian', () => {
 
     it('max uint256', async () => {
       const expected = BigNumber.from(2).pow(128).sub(1)
-      expect(await babylonian.sqrt(MAX_UINT256)).to.eq(expected)
+      expect(await babylonian.sqrt(MaxUint256)).to.eq(expected)
     });
   });
 });

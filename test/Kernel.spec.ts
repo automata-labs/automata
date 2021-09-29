@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
 import { Kernel } from '../typechain';
-import { deploy, MAX_UINT128 } from './shared/utils';
+import { deploy, MaxUint128 } from './shared/utils';
 
 const { BigNumber } = ethers;
 const { createFixtureLoader } = waffle;
@@ -42,13 +42,13 @@ describe('Kernel', async () => {
     });
     it('should write max', async () => {
       const key = ethers.utils.keccak256(abi.encode(['address'], [wallet.address]));
-      await kernel.write(key, MAX_UINT128, MAX_UINT128);
-      expect((await kernel.read(key)).x).to.equal(MAX_UINT128);
-      expect((await kernel.read(key)).y).to.equal(MAX_UINT128);
+      await kernel.write(key, MaxUint128, MaxUint128);
+      expect((await kernel.read(key)).x).to.equal(MaxUint128);
+      expect((await kernel.read(key)).y).to.equal(MaxUint128);
     });
     it('should write to zero', async () => {
       const key = ethers.utils.keccak256(abi.encode(['address'], [wallet.address]));
-      await kernel.write(key, MAX_UINT128, MAX_UINT128);
+      await kernel.write(key, MaxUint128, MaxUint128);
       await kernel.write(key, 0, 0);
       expect((await kernel.read(key)).x).to.equal(0);
       expect((await kernel.read(key)).y).to.equal(0);
