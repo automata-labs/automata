@@ -35,19 +35,23 @@ export const ROOT = ethers.utils.arrayify('0x00000000');
  * Blockchain
  */
 
-export async function mineBlock(provider) {
-  await ethers.provider.send('evm_increaseTime', [15]);
-  await ethers.provider.send('evm_mine', []);
+export async function evmBlockNumber(provider) {
+  return Number.parseInt(await provider.send('eth_blockNumber', []), 16);
 }
 
-export async function mineBlocks(provider, n: number) {
+export async function evmMine(provider) {
+  await provider.send('evm_increaseTime', [15]);
+  await provider.send('evm_mine', []);
+}
+
+export async function evmMiner(provider, n: number) {
   for (let i = 0; i < n; i++) {
-    await mineBlock(provider);
+    await evmMine(provider);
   }
 }
 
 // Workaround for time travel tests bug: https://github.com/Tonyhaenn/hh-time-travel/blob/0161d993065a0b7585ec5a043af2eb4b654498b8/test/test.js#L12
-export async function mineToFuture(provider, future: number) {
+export async function evmMineToFuture(provider, future: number) {
   const currentBlockNumber = await provider.getBlockNumber();
   const currentBlock = await provider.getBlock(currentBlockNumber);
 

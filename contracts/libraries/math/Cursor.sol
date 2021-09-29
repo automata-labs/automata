@@ -7,6 +7,7 @@ library Cursor {
     /// @notice Returns the cursor of the current liquidity.
     function getCursor(uint256 liquidity, uint256 decimals) internal pure returns (uint256) {
         uint256 value = liquidity / (uint256(10) ** decimals);
+
         if (value == 0) {
             return 0;
         } else {
@@ -19,6 +20,7 @@ library Cursor {
     ///      E.g. `1023` gives cursor `10` rather than `9`.
     function getCursorRoundingUp(uint256 liquidity, uint256 decimals) internal pure returns (uint256) {
         uint256 value = liquidity / (uint256(10) ** decimals);
+
         if (value == 0) {
             return 0;
         } else {

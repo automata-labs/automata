@@ -15,6 +15,7 @@ import "../libraries/data/Checkpoint.sol";
 import "../libraries/data/Slot.sol";
 import "../libraries/helpers/Shell.sol";
 import "../libraries/math/Cast.sol";
+import "../libraries/math/Cursor.sol";
 import "../libraries/utils/RevertMsgExtractor.sol";
 
 abstract contract Operator is IOperator {
@@ -113,7 +114,6 @@ abstract contract Operator is IOperator {
 
     function _checkpoint(uint256 pid, uint256 blockNumber) internal returns (Checkpoint.Data memory) {
         if (checkpoints[pid].votes == 0) {
-            uint256 checkpointedCursor;
             uint256 checkpointedVotes;
             ISequencer _sequencer = ISequencer(sequencer);
 
@@ -124,15 +124,14 @@ abstract contract Operator is IOperator {
 
                 if (priorVotes < capacity || i == _sequencer.cardinality() - 1) {
                     checkpointedVotes += priorVotes;
-                    checkpointedCursor = i;
                     break;
                 } else {
                     checkpointedVotes += priorVotes;
                 }
             }
 
-            checkpoints[pid].cursor = checkpointedCursor;
             checkpoints[pid].votes = checkpointedVotes;
+            checkpoints[pid].cursor = Cursor.getCursorRoundingUp(checkpointedVotes, decimals);
         }
 
         return checkpoints[pid];

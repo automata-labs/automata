@@ -259,26 +259,36 @@ describe('Sequencer', async () => {
       await loadFixture(withdrawFixture);
     });
 
-    it('should withdraw non-zero on non-zero liquidity', async () => {
+    it('should withdraw', async () => {
       await sequencer.clones(5);
       await token.transfer(sequencer.address, expandTo18Decimals(5));
       await sequencer.deposit();
+
       await sequencer.withdraw(other1.address, expandTo18Decimals(3));
       expect(await sequencer.liquidity()).to.equal(expandTo18Decimals(2));
       expect(await token.balanceOf(other1.address)).to.equal(expandTo18Decimals(3));
+    });
+    it('should withdraw with excess of 1', async () => {
+      await sequencer.clones(5);
+      await token.transfer(sequencer.address, expandTo18Decimals(3).add(1));
+      await sequencer.deposit();
+      await sequencer.withdraw(other1.address, expandTo18Decimals(3).add(1));
+      expect(await sequencer.liquidity()).to.equal(0);
+      expect(await token.balanceOf(other1.address)).to.equal(expandTo18Decimals(3).add(1));
     });
     it('should withdraw all from max deposit', async () => {
       await sequencer.clones(10);
       await token.transfer(sequencer.address, expandTo18Decimals(1023));
       await sequencer.deposit();
+
       await sequencer.withdraw(other1.address, expandTo18Decimals(1023));
       expect(await sequencer.liquidity()).to.equal(0);
       expect(await token.balanceOf(other1.address)).to.equal(expandTo18Decimals(1023));
     });
-    it('should revert when zero on zero liquidity', async () => {
+    it('should revert when withdrawing zero on zero liquidity', async () => {
       await expect(sequencer.withdraw(wallet.address, 0)).to.be.revertedWith("0");
     });
-    it('should revert when zero on non-zero liquidity', async () => {
+    it('should revert when withdrawing zero on non-zero liquidity', async () => {
       await sequencer.clones(5);
       await token.transfer(sequencer.address, expandTo18Decimals(5));
       await sequencer.deposit();
