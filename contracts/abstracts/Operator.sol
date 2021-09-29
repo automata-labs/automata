@@ -82,6 +82,8 @@ abstract contract Operator is IOperator {
         require(IKernel(kernel).pool(underlying, amount.u128().i128()) <= limit, "LIM");
         IKernel(kernel).modify(underlying, tox, amount.u128().i128(), 0);
         IKernel(kernel).modify(underlying, toy, 0, amount.u128().i128());
+
+        emit Joined(msg.sender, tox, toy, amount.u128());
     }
 
     /// @inheritdoc IOperatorFunctions
@@ -90,6 +92,8 @@ abstract contract Operator is IOperator {
         uint128 amount = Math.min(slot.x, slot.y).u128();
         IKernel(kernel).modify(underlying, address(this), -amount.i128(), -amount.i128());
         ISequencer(sequencer).withdraw(to, amount);
+
+        emit Exited(msg.sender, to, amount.u128());
     }
 
     /// @inheritdoc IOperatorFunctions
@@ -98,23 +102,7 @@ abstract contract Operator is IOperator {
     }
 
     /// @inheritdoc IOperatorFunctions
-    function use(uint256 pid, uint8 support) external override {
-        uint128 amount = IAccumulator(accumulator).grow(underlying);
-        require(amount > 0, "0");
-
-        (uint256 start, uint256 end,,) = _timeline(pid);
-        require(start > 0, "T0");
-        require(block.number >= start, "BEG");
-        require(block.number <= end, "END");
-
-        if (support == uint8(1)) {
-            votes[pid].x += amount;
-        } else if (support == uint8(0)) {
-            votes[pid].y += amount;
-        } else {
-            revert("8");
-        }
-    }
+    function use(uint256 pid, uint8 support) external override virtual;
 
     /// @inheritdoc IOperatorFunctions
     function route(uint256 pid, uint256 cursor) external override virtual;

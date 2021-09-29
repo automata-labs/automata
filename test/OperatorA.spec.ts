@@ -33,6 +33,21 @@ describe('OperatorA', async () => {
     await operator.join(tox, toy);
   };
 
+  const exit = async (caller, to, amount) => {
+    await operator.connect(caller).transfer(operator.address, amount, amount);
+    await operator.exit(to);
+  };
+
+  const stake = async (caller, amount) => {
+    await join(caller, accumulator.address, caller.address, amount);
+    await accumulator.stake(token.address, caller.address);
+  };
+
+  const use = async (caller, amount, pid, support) => {
+    await operator.connect(caller).transfer(accumulator.address, 0, amount);
+    await operator.use(pid, support);
+  };
+
   const propose = async (governor) => {
     await token.delegate(wallet.address);
     await governor.propose(
@@ -42,6 +57,15 @@ describe('OperatorA', async () => {
       [abi.encode(['address', 'uint256'], [other1.address, expandTo18Decimals(100)])],
       `Mint to ${other1.address}`
     );
+  };
+
+  const timetravel = async (pid, period) => {
+    let location;
+    if (period == 'start') location = 2;
+    else if (period == 'end') location = 3;
+
+    const blocks = (await operator.timeline(pid))[location].toNumber() - (await provider.getBlockNumber()) + 1;
+    await mineBlocks(provider, blocks);
   };
 
   const fixture = async () => {
@@ -72,12 +96,9 @@ describe('OperatorA', async () => {
 
   const exitFixture = async () => {
     await joinFixture();
-
-    await token.transfer(sequencer.address, expandTo18Decimals(100));
-    await operator.join(wallet.address, wallet.address);
   };
 
-  const choiceFixture = async () => {
+  const useFixture = async () => {
     await fixture();
 
     await token.approve(operator.address, MAX_UINT256);
@@ -94,9 +115,11 @@ describe('OperatorA', async () => {
     await operator.set(operator.interface.getSighash('computer'), abi.encode(['address'], [linear.address]));
     await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(10000)]));
   };
-
+  
   const routeFixture = async () => {
-    await choiceFixture();
+    await useFixture();
+    
+    await operator.set(operator.interface.getSighash('observe'), abi.encode(['bool'], [false]));
   };
 
   before('fixture loader', async () => {
@@ -126,7 +149,19 @@ describe('OperatorA', async () => {
       await join(wallet, wallet.address, wallet.address, expandTo18Decimals(1023));
       await expect(join(wallet, wallet.address, wallet.address, expandTo18Decimals(1023))).to.be.reverted.revertedWith('OVF');
     });
-    it.skip('should join with different accounts', async () => {});
+    it('should join with different accounts', async () => {
+      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
+      await token.transfer(other1.address, expandTo18Decimals(20));
+      await join(other1, other1.address, other1.address, expandTo18Decimals(20));
+
+      // `wallet`
+      expect((await read(token.address, wallet.address)).x).to.equal(expandTo18Decimals(10));
+      expect((await read(token.address, wallet.address)).y).to.equal(expandTo18Decimals(10));
+
+      // `other1`
+      expect((await read(token.address, other1.address)).x).to.equal(expandTo18Decimals(20));
+      expect((await read(token.address, other1.address)).y).to.equal(expandTo18Decimals(20));
+    });
     it('should join to another accounts', async () => {
       await join(wallet, other1.address, other2.address, expandTo18Decimals(10));
       expect(await read(token.address, other1.address)).to.eql([expandTo18Decimals(10), BigNumber.from(0)]);
@@ -154,7 +189,6 @@ describe('OperatorA', async () => {
     it('should revert when zero tokens', async () => {
       await expect(operator.join(wallet.address, wallet.address)).to.be.revertedWith('0');
     });
-    it.skip('should revert when join on zero shards', async () => {});
     it('should revert when overflowing limit', async () => {
       await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(100)]));
       await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
@@ -169,8 +203,16 @@ describe('OperatorA', async () => {
       await operator.join(wallet.address, wallet.address);
       expect(await read(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
     });
-    it.skip('should revert when overflowing sequencer space', async () => {});
-    it.skip('should emit an event', async () => {});
+    it('should revert when overflowing sequencer space', async () => {
+      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(1023));
+      await expect(join(wallet, wallet.address, wallet.address, 1)).to.be.revertedWith('OVF');
+    });
+    it('should emit an event', async () => {
+      await token.transfer(sequencer.address, expandTo18Decimals(1));
+      await expect(operator.join(wallet.address, wallet.address))
+        .to.emit(operator, 'Joined')
+        .withArgs(wallet.address, wallet.address, wallet.address, expandTo18Decimals(1));
+    });
   });
 
   describe('#exit', async () => {
@@ -179,42 +221,139 @@ describe('OperatorA', async () => {
     });
 
     it('should exit', async () => {
-      const balanceBefore = await token.balanceOf(wallet.address);
-      await operator.transfer(operator.address, expandTo18Decimals(10), expandTo18Decimals(10));
-      await operator.exit(wallet.address);
-      const balanceAfter = await token.balanceOf(wallet.address);
+      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(500));
 
+      const balanceBefore = await token.balanceOf(wallet.address);
+      await exit(wallet, wallet.address, expandTo18Decimals(10));
+      const balanceAfter = await token.balanceOf(wallet.address);
       expect(balanceAfter).to.equal(balanceBefore.add(expandTo18Decimals(10)));
     });
-    it.skip('should exit multiple times', async () => {});
-    it.skip('should exit with different accounts', async () => {});
-    it.skip('should exit to another account', async () => {});
-    it.skip('should exit dust', async () => {});
-    it.skip('should exit line', async () => {});
-    it.skip('should exit on non-symmetric slot', async () => {});
-    it.skip('should exit when governor is active', async () => {});
-    it.skip('should revert when exiting zero tokens', async () => {});
-    it.skip('should revert when exiting on zero shards', async () => {});
-    it.skip('should revert when underflowing sequencer space', async () => {});
-    it.skip('should emit an event', async () => {});
+    it('should exit multiple times', async () => {
+      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(500));
+
+      const balanceBefore = await token.balanceOf(wallet.address);
+      await exit(wallet, wallet.address, expandTo18Decimals(10));
+      await exit(wallet, wallet.address, expandTo18Decimals(20));
+      const balanceAfter = await token.balanceOf(wallet.address);
+      expect(balanceAfter).to.equal(balanceBefore.add(expandTo18Decimals(30)));
+      expect((await read(token.address, wallet.address)).x).to.equal(expandTo18Decimals(470));
+    });
+    it('should exit with different accounts', async () => {
+      let balanceBefore;
+      let balanceAfter;
+
+      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
+      await token.transfer(other1.address, expandTo18Decimals(100));
+      await join(other1, other1.address, other1.address, expandTo18Decimals(100));
+
+      balanceBefore = await token.balanceOf(wallet.address);
+      await exit(wallet, wallet.address, expandTo18Decimals(10));
+      balanceAfter = await token.balanceOf(wallet.address);
+      expect(balanceAfter).to.equal(balanceBefore.add(expandTo18Decimals(10)));
+
+      balanceBefore = await token.balanceOf(other1.address);
+      await exit(other1, other1.address, expandTo18Decimals(10));
+      balanceAfter = await token.balanceOf(other1.address);
+      expect(balanceAfter).to.equal(balanceBefore.add(expandTo18Decimals(10)));
+    });
+    it('should exit to another account', async () => {
+      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
+
+      const balanceBefore = await token.balanceOf(other1.address);
+      await exit(wallet, other1.address, expandTo18Decimals(10));
+      const balanceAfter = await token.balanceOf(other1.address);
+      expect(balanceAfter).to.equal(balanceBefore.add(expandTo18Decimals(10)));
+    });
+    it('should exit dust', async () => {
+      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
+
+      const balanceBefore = await token.balanceOf(wallet.address);
+      await exit(wallet, wallet.address, 1);
+      const balanceAfter = await token.balanceOf(wallet.address);
+      expect(balanceAfter).to.equal(balanceBefore.add(1));
+    });
+    it('should exit line', async () => {
+      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(1023));
+
+      const balanceBefore = await token.balanceOf(wallet.address);
+      await exit(wallet, wallet.address, expandTo18Decimals(1023));
+      const balanceAfter = await token.balanceOf(wallet.address);
+      expect(balanceAfter).to.equal(balanceBefore.add(expandTo18Decimals(1023)));
+    });
+    it('should exit on non-symmetric slot', async () => {
+      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
+      await operator.transfer(operator.address, expandTo18Decimals(75), expandTo18Decimals(50));
+      
+      const balanceBefore = await token.balanceOf(wallet.address);
+      await operator.exit(wallet.address);
+      const balanceAfter = await token.balanceOf(wallet.address);
+      expect(balanceAfter).to.equal(balanceBefore.add(expandTo18Decimals(50)));
+    });
+    it('should exit when governor is active', async () => {
+      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
+      await propose(governor);
+
+      const balanceBefore = await token.balanceOf(wallet.address);
+      await exit(wallet, wallet.address, expandTo18Decimals(100));
+      const balanceAfter = await token.balanceOf(wallet.address);
+      expect(balanceAfter).to.equal(balanceBefore.add(expandTo18Decimals(100)));
+    });
+    it('should revert when exiting zero tokens', async () => {
+      await expect(operator.exit(wallet.address)).to.be.revertedWith('0');
+    });
+    it('should emit an event', async () => {
+      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
+      await operator.transfer(operator.address, expandTo18Decimals(100), expandTo18Decimals(100));
+      await expect(operator.exit(wallet.address))
+        .to.emit(operator, 'Exited')
+        .withArgs(wallet.address, wallet.address, expandTo18Decimals(100));
+    });
   });
 
   describe('#use', async () => {
     beforeEach(async () => {
-      await loadFixture(choiceFixture);
+      await loadFixture(useFixture);
     });
 
     it('should use', async () => {
-      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
-      await operator.transfer(accumulator.address, expandTo18Decimals(100), 0);
+      await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
       await accumulator.stake(token.address, wallet.address);
+      await propose(governor);
+
+      // vote `100` for
+      await operator.transfer(accumulator.address, 0, expandTo18Decimals(75));
+      await operator.use(1, 1);
       
+      // vote `50` against
+      await operator.transfer(accumulator.address, 0, expandTo18Decimals(25));
+      await operator.use(1, 0);
+
+      expect((await operator.votes(1)).x).to.equal(expandTo18Decimals(75));
+      expect((await operator.votes(1)).y).to.equal(expandTo18Decimals(25));
+    });
+    it('should revert when pid is invalid', async () => {
+      await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
+      await accumulator.stake(token.address, wallet.address);
+      await propose(governor);
+
+      await operator.transfer(accumulator.address, 0, expandTo18Decimals(100));
+      await expect(operator.use(333, 1)).to.be.revertedWith('GovernorAlpha::state: invalid proposal id');
+    });
+    it('should revert when pid is old', async () => {
+      await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
+      await accumulator.stake(token.address, wallet.address);
+      await propose(governor);
+      await mineBlocks(provider, (await operator.timeline(1))[3].toNumber() - (await provider.getBlockNumber()));
+
+      await operator.transfer(accumulator.address, 0, expandTo18Decimals(100));
+      await expect(operator.use(1, 1)).to.be.revertedWith('OBS');
+    });
+    it('should revert when using zero', async () => {
+      await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
+      await accumulator.stake(token.address, wallet.address);
       await propose(governor);
       
-      await operator.transfer(accumulator.address, 0, expandTo18Decimals(100));
-      await operator.use(1, 1);
-      expect((await operator.votes(1)).x).to.equal(expandTo18Decimals(100));
-      expect((await operator.votes(1)).y).to.equal(0);
+      await expect(operator.use(1, 1)).to.be.revertedWith('0');
     });
     it('should revert when nothing staked', async () => {
       await expect(operator.use(1, 1)).to.be.reverted;
@@ -224,16 +363,16 @@ describe('OperatorA', async () => {
       await accumulator.stake(token.address, wallet.address);
       await expect(operator.use(1, 1)).to.be.revertedWith('E');
     });
-    it('should revert when zero', async () => {
-      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
-      await operator.transfer(accumulator.address, expandTo18Decimals(100), 0);
+    it('should emit an event', async () => {
+      await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
       await accumulator.stake(token.address, wallet.address);
-      
       await propose(governor);
-      
-      await expect(operator.use(1, 1)).to.be.revertedWith('0');
+
+      await operator.transfer(accumulator.address, 0, expandTo18Decimals(100));
+      await expect(operator.use(1, 1))
+        .to.emit(operator, 'Used')
+        .withArgs(wallet.address, 1, 1);
     });
-    it.skip('should emit an event', async () => {});
   });
 
   describe('#route', async () => {
@@ -241,16 +380,11 @@ describe('OperatorA', async () => {
       await loadFixture(routeFixture);
     });
 
-    it('should route with all (100)', async () => {
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
-      await accumulator.stake(token.address, wallet.address);
+    it('(100, 0), (100)', async () => {
       await propose(governor);
-      await operator.use(1, 1);
-
-      await mineBlocks(
-        provider,
-        (await operator.timeline(1))[2].toNumber() - (await provider.getBlockNumber())
-      );
+      await stake(wallet, expandTo18Decimals(100));
+      await use(wallet, expandTo18Decimals(100), 1, 1);
+      await timetravel(1, 'start');
 
       await expect(operator.route(1, 10)).to.be.revertedWith('F0');
       await expect(operator.route(1, 9)).to.be.revertedWith('F0');
@@ -264,18 +398,12 @@ describe('OperatorA', async () => {
       await operator.route(1, 1);
       await operator.route(1, 0);
     });
-    it('should route with all (75)', async () => {
-      // route with 75, with excess of 12.
-      // we allow route with cursor, and then we have 63 left.
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(75));
-      await accumulator.stake(token.address, wallet.address);
+    it('(75, 0), (75)', async () => {
+      // route with 75 - filled 63 and excess 12 => 75.
       await propose(governor);
-      await operator.use(1, 1);
-
-      await mineBlocks(
-        provider,
-        (await operator.timeline(1))[2].toNumber() - (await provider.getBlockNumber())
-      );
+      await stake(wallet, expandTo18Decimals(75));
+      await use(wallet, expandTo18Decimals(75), 1, 1);
+      await timetravel(1, 'start');
 
       await expect(operator.route(1, 10)).to.be.revertedWith('F0');
       await expect(operator.route(1, 9)).to.be.revertedWith('F0');
@@ -289,16 +417,11 @@ describe('OperatorA', async () => {
       await operator.route(1, 1);
       await operator.route(1, 0);
     });
-    it('should route with all (38)', async () => {
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(38));
-      await accumulator.stake(token.address, wallet.address);
+    it('(38, 0), (38)', async () => {
       await propose(governor);
-      await operator.use(1, 1);
-
-      await mineBlocks(
-        provider,
-        (await operator.timeline(1))[2].toNumber() - (await provider.getBlockNumber())
-      );
+      await stake(wallet, expandTo18Decimals(38));
+      await use(wallet, expandTo18Decimals(38), 1, 1);
+      await timetravel(1, 'start');
 
       await expect(operator.route(1, 10)).to.be.revertedWith('F0');
       await expect(operator.route(1, 9)).to.be.revertedWith('F0');
@@ -312,17 +435,11 @@ describe('OperatorA', async () => {
       await operator.route(1, 1);
       await operator.route(1, 0);
     });
-    it('should route with 75 out of 100', async () => {
-      await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
-      await accumulator.stake(token.address, wallet.address);
+    it('(75, 0), (100)', async () => {
       await propose(governor);
-      await operator.transfer(accumulator.address, 0, expandTo18Decimals(75));
-      await operator.use(1, 1);
-
-      await mineBlocks(
-        provider,
-        (await operator.timeline(1))[2].toNumber() - (await provider.getBlockNumber())
-      );
+      await stake(wallet, expandTo18Decimals(100));
+      await use(wallet, expandTo18Decimals(75), 1, 1);
+      await timetravel(1, 'start');
 
       await expect(operator.route(1, 10)).to.be.revertedWith('F0');
       await expect(operator.route(1, 9)).to.be.revertedWith('F0');
@@ -336,6 +453,24 @@ describe('OperatorA', async () => {
       await operator.route(1, 1);
       await expect(operator.route(1, 0)).to.be.revertedWith('F0');
     });
-    it.skip('should emit an event', async () => {});
+    it('(50, 25), (100)', async () => {
+      await propose(governor);
+      await stake(wallet, expandTo18Decimals(100));
+      await use(wallet, expandTo18Decimals(50), 1, 1);
+      await use(wallet, expandTo18Decimals(25), 1, 0);
+      await timetravel(1, 'start');
+
+      await expect(operator.route(1, 10)).to.be.revertedWith('F1');
+      await expect(operator.route(1, 9)).to.be.revertedWith('F1');
+      await expect(operator.route(1, 8)).to.be.revertedWith('F1');
+      await expect(operator.route(1, 7)).to.be.revertedWith('F1');
+      await expect(operator.route(1, 6)).to.be.revertedWith('F1');
+      await expect(operator.route(1, 5)).to.be.revertedWith('F1');
+      await operator.route(1, 4);
+      await operator.route(1, 3);
+      await expect(operator.route(1, 2)).to.be.revertedWith('F1');
+      await expect(operator.route(1, 1)).to.be.revertedWith('F1');
+      await operator.route(1, 0);
+    });
   });
 });

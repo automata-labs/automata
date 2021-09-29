@@ -88,7 +88,7 @@ contract Sequencer is ISequencer, Access {
 
         liquidity += amount;
 
-        uint256 cursor = Cursor.getCursor(liquidity - amount, decimals);
+        uint256 cursor = Cursor.getCursorRoundingUp(liquidity - amount, decimals);
         uint256 stack = amount;
         while (stack != 0) {
             address shard = shards[cursor];
