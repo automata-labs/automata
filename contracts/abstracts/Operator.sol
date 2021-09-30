@@ -141,11 +141,11 @@ abstract contract Operator is IOperator {
         return checkpoints[pid];
     }
 
-    function _compute(uint256 max, uint256 x, uint256 y) internal view returns (uint8, uint256) {
-        bytes memory data = _staticcall(computer, abi.encodeWithSelector(IComputer.compute.selector, x, y));
+    function _compute(uint256 m, uint256 x, uint256 y) internal view returns (uint8, uint256) {
+        bytes memory data = _staticcall(computer, abi.encodeWithSelector(IComputer.compute.selector, m, x, y));
         (uint8 support, uint256 amount) = abi.decode(data, (uint8, uint256));
 
-        return (support, Math.min(max, amount));
+        return (support, amount);
     }
 
     function _staticcall(address target, bytes memory data) internal view returns (bytes memory) {

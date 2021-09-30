@@ -194,7 +194,7 @@ export function shouldBehaveLikeLinearRoute() {
     await this.operator.route(this.pid, 1); // 2
     await this.operator.route(this.pid, 0); // 1
   });
-  it('(8, 0) => (8, 0) | 7', async function () {
+  it('(8, 0) => (7, 0) | 7', async function () {
     await this.join(this.wallet, expandTo18Decimals(7));
     await this.stake(this.wallet, expandTo18Decimals(7));
     await this.propose(this.wallet, this.governor);
@@ -206,6 +206,9 @@ export function shouldBehaveLikeLinearRoute() {
     await this.operator.route(this.pid, 2); // 4
     await this.operator.route(this.pid, 1); // 2
     await this.operator.route(this.pid, 0); // 1
+
+    expect((await this.governor.proposals(this.pid)).forVotes).to.equal(expandTo18Decimals(7).add(3));
+    expect((await this.governor.proposals(this.pid)).againstVotes).to.equal(0);
   });
   it('(0, 0) => (0, 0) | 7', async function () {
     await this.join(this.wallet, expandTo18Decimals(7));
@@ -316,13 +319,15 @@ export function shouldBehaveLikeLinearRoute() {
         await this.propose(this.wallet, this.governor);
 
         if (i > 0) await this.use(this.wallet, expandTo18Decimals(i), this.pid, 1);
-        if (i > 0) await this.collect(this.wallet);
+        if (i > 0) await this.collect(this.wallet); // collect because voting can overflow
         if (j > 0) await this.use(this.wallet, expandTo18Decimals(j), this.pid, 0);
 
         await this.timetravel(this.provider, this.pid, 'start');
 
+        // dust is a counter for the initialization dust
         let dust = 0;
 
+        // check if routes can be called
         if ((Math.abs(i - j) & 4) == 4) {
           await this.operator.route(this.pid, 2);
           dust++;
@@ -344,6 +349,7 @@ export function shouldBehaveLikeLinearRoute() {
           await expect(this.operator.route(this.pid, 0)).to.be.revertedWith('F');
         }
 
+        // check vote results
         if (i - j > 0) {
           expect((await this.governor.proposals(this.pid)).forVotes)
             .to.equal(expandTo18Decimals(Math.max(i - j, 0)).add(dust));
