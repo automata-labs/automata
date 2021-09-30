@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
 import { erc20CompLikeFixture } from './shared/fixtures';
+import { functions } from './shared/functions';
 import { deploy, expandTo18Decimals, ROOT } from './shared/utils';
 import { AToken, ERC20CompLike, Kernel, OperatorA, Sequencer } from '../typechain';
 
@@ -15,21 +16,13 @@ describe('AToken', async () => {
   let other2;
 
   let token: ERC20CompLike;
-
   let kernel: Kernel;
   let sequencer: Sequencer;
   let operator;
-
   let aToken: AToken;
 
-  const read = (tokenAddr, walletAddr) => {
-    return kernel.read(ethers.utils.keccak256(abi.encode(['address', 'address'], [tokenAddr, walletAddr])));
-  };
-
-  const join = async (caller, amount, tox?, toy?) => {
-    await token.connect(caller).transfer(sequencer.address, amount);
-    await operator.join(tox || caller.address, toy || caller.address);
-  };
+  let read: Function;
+  let join: Function;
 
   const fixture = async () => {
     ;([wallet, other1, other2] = await ethers.getSigners());
@@ -49,6 +42,8 @@ describe('AToken', async () => {
 
     await token.approve(sequencer.address, MaxUint256);
     await sequencer.clones(10);
+
+    ({ read, join } = functions({ token, kernel, sequencer, operator }));
   };
 
   const mintFixture = async () => {

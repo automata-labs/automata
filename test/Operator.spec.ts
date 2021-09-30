@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
 import { erc20CompLikeFixture, governorAlphaFixture } from './shared/fixtures';
+import { functions } from './shared/functions';
 import {
   deploy,
   expandTo18Decimals,
@@ -33,30 +34,10 @@ describe('OperatorA', async () => {
   let sequencer: Sequencer;
   let operator: OperatorMock;
 
-  const read = (tokenAddr, walletAddr) => {
-    return kernel.read(ethers.utils.keccak256(abi.encode(['address', 'address'], [tokenAddr, walletAddr])));
-  };
-
-  const join = async (caller, amount, tox?, toy?) => {
-    await token.connect(caller).transfer(sequencer.address, amount);
-    await operator.join(tox || caller.address, toy || caller.address);
-  };
-
-  const exit = async (caller, amount, to?) => {
-    await operator.connect(caller).transfer(operator.address, amount, amount);
-    await operator.exit(to || caller.address);
-  };
-
-  const propose = async (governor) => {
-    await token.delegate(wallet.address);
-    await governor.propose(
-      [token.address],
-      [0],
-      ['mint(address,uint256)'],
-      [abi.encode(['address', 'uint256'], [other1.address, expandTo18Decimals(100)])],
-      `Mint to ${other1.address}`
-    );
-  };
+  let propose: Function;
+  let read: Function;
+  let join: Function;
+  let exit: Function;
 
   const fixture = async () => {
     [wallet, other1, other2] = await provider.getWallets();
@@ -67,6 +48,8 @@ describe('OperatorA', async () => {
     kernel = (await deploy('Kernel')) as Kernel;
     sequencer = (await deploy('Sequencer', token.address)) as Sequencer;
     operator = (await deploy('OperatorA', kernel.address, token.address)) as OperatorMock;
+
+    ({ propose, read, join, exit } = functions({ token, kernel, operator, sequencer }));
   };
 
   const joinFixture = async () => {
@@ -143,7 +126,7 @@ describe('OperatorA', async () => {
     });
     it('should join when governor active and observe is false', async () => {
       await operator.set(operator.interface.getSighash('observe'), abi.encode(['bool'], [false]));
-      await propose(governor);
+      await propose(wallet, governor);
       await join(wallet, expandTo18Decimals(10));
       expect(await read(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
     });
@@ -156,7 +139,7 @@ describe('OperatorA', async () => {
       await expect(join(wallet, 1)).to.be.revertedWith('LIM');
     });
     it('should revert when governor is active', async () => {
-      await propose(governor);
+      await propose(wallet, governor);
 
       await token.transfer(sequencer.address, expandTo18Decimals(10));
       await expect(operator.join(wallet.address, wallet.address)).to.be.revertedWith('OBS');
@@ -252,7 +235,7 @@ describe('OperatorA', async () => {
     });
     it('should exit when governor is active', async () => {
       await join(wallet, expandTo18Decimals(100));
-      await propose(governor);
+      await propose(wallet, governor);
 
       const balanceBefore = await token.balanceOf(wallet.address);
       await exit(wallet, expandTo18Decimals(100));

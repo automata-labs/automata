@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
 import { erc20CompLikeFixture } from './shared/fixtures';
+import { functions } from './shared/functions';
 import { deploy, expandTo18Decimals, Q128, ROOT } from './shared/utils';
 import { Accumulator, ERC20CompLike, Kernel, OperatorA, Sequencer } from '../typechain';
 
@@ -15,35 +16,19 @@ describe('Accumulator', async () => {
   let other2;
 
   let token: ERC20CompLike;
-
   let kernel: Kernel;
   let accumulator: Accumulator;
   let sequencer: Sequencer;
   let operator: OperatorA;
 
-  const read = (tokenAddr, walletAddr) => {
-    return kernel.read(ethers.utils.keccak256(abi.encode(['address', 'address'], [tokenAddr, walletAddr])));
-  };
-
-  const globs = async (underlying: string) => {
-    return accumulator.globs(underlying);
-  };
-
-  const units = async (underlying: string, owner: string) => {
-    return accumulator.units(ethers.utils.keccak256(abi.encode(['address', 'address'], [underlying, owner])));
-  };
-
-  const normalized = async (underlying: string, owner: string) => {
-    return accumulator.get(underlying, owner);
-  };
-
-  const join = async (caller, amount, tox?, toy?) => {
-    await token.connect(caller).transfer(sequencer.address, amount);
-    await operator.join(tox || caller.address, toy || caller.address);
-  };
+  let read: Function;
+  let join: Function;
+  let globs: Function;
+  let units: Function;
+  let normalized: Function;
 
   const fixture = async () => {
-    ;([wallet, other1, other2] = await ethers.getSigners());
+    ([wallet, other1, other2] = await ethers.getSigners());
 
     token = await erc20CompLikeFixture(provider, wallet);
 
@@ -61,6 +46,8 @@ describe('Accumulator', async () => {
 
     await token.approve(sequencer.address, MaxUint256);
     await sequencer.clones(10);
+
+    ({ read, join, globs, units, normalized } = functions({ token, kernel, accumulator, sequencer, operator }));
   };
 
   describe('#grow', async () => {
