@@ -18,6 +18,7 @@ import "../libraries/math/Cast.sol";
 import "../libraries/math/Cursor.sol";
 import "../libraries/utils/RevertMsgExtractor.sol";
 
+/// @title Operator
 abstract contract Operator is IOperator {
     using Cast for uint256;
     using Cast for uint128;

@@ -15,6 +15,10 @@ describe('Kernel', async () => {
 
   let kernel: Kernel;
 
+  const code = (address) => {
+    return ethers.utils.keccak256(abi.encode(['address'], [address]));
+  };
+
   const fixture = async () => {
     ;([wallet, other1, other2] = await ethers.getSigners());
     kernel = (await deploy('Kernel')) as Kernel;
@@ -23,10 +27,6 @@ describe('Kernel', async () => {
   beforeEach(async () => {
     await loadFixture(fixture);
   });
-
-  function code(address) {
-    return ethers.utils.keccak256(abi.encode(['address'], [address]));
-  }
 
   describe('#write', async () => {
     it('should write', async () => {
