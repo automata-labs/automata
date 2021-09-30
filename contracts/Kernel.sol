@@ -9,15 +9,15 @@ import "./libraries/data/Slot.sol";
 /// @title Kernel
 contract Kernel is IKernel, Access {
     /// @inheritdoc IKernelState
-    mapping(bytes32 => Slot.Data) public override slots;
+    mapping(bytes32 => Slot.Data) public slots;
 
     /// @inheritdoc IKernelStateDerived
-    function read(bytes32 key) external view override returns (Slot.Data memory) {
+    function read(bytes32 key) external view returns (Slot.Data memory) {
         return slots[key];
     }
 
     /// @inheritdoc IKernelFunctions
-    function write(bytes32 key, uint128 x, uint128 y) external override auth {
+    function write(bytes32 key, uint128 x, uint128 y) external auth {
         slots[key].x = x;
         slots[key].y = y;
 
@@ -25,7 +25,7 @@ contract Kernel is IKernel, Access {
     }
 
     /// @inheritdoc IKernelFunctions
-    function update(bytes32 key, int128 dx, int128 dy) external override auth returns (Slot.Data memory) {
+    function update(bytes32 key, int128 dx, int128 dy) external auth returns (Slot.Data memory) {
         if (dx > 0) slots[key].x += uint128(dx);
         if (dx < 0) {
             require(slots[key].x >= uint128(-dx), "-");
@@ -43,7 +43,7 @@ contract Kernel is IKernel, Access {
     }
 
     /// @inheritdoc IKernelFunctions
-    function transfer(bytes32 from, bytes32 to, uint128 x, uint128 y) external override auth {
+    function transfer(bytes32 from, bytes32 to, uint128 x, uint128 y) external auth {
         require(slots[from].x >= x, "-");
         require(slots[from].y >= y, "-");
         unchecked {

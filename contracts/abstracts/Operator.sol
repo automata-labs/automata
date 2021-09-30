@@ -24,33 +24,33 @@ abstract contract Operator is IOperator {
     using Shell for IKernel;
 
     /// @inheritdoc IOperatorImmutables
-    address public immutable override kernel;
+    address public immutable kernel;
     /// @inheritdoc IOperatorState
-    address public override accumulator;
+    address public accumulator;
     /// @inheritdoc IOperatorState
-    address public override sequencer;
+    address public sequencer;
 
     /// @inheritdoc IOperatorImmutables
-    address public immutable override underlying;
+    address public immutable underlying;
     /// @inheritdoc IOperatorImmutables
-    uint256 public immutable override decimals;
+    uint256 public immutable decimals;
 
     /// @inheritdoc IOperatorState
-    address public override governor;
+    address public governor;
     /// @inheritdoc IOperatorState
-    uint256 public override period;
+    uint256 public period;
     /// @inheritdoc IOperatorState
-    address public override computer;
+    address public computer;
 
     /// @inheritdoc IOperatorState
-    bool public override observe;
+    bool public observe;
     /// @inheritdoc IOperatorState
-    uint256 public override limit;
+    uint256 public limit;
 
     /// @inheritdoc IOperatorState
-    mapping(uint256 => Checkpoint.Data) public override checkpoints;
+    mapping(uint256 => Checkpoint.Data) public checkpoints;
     /// @inheritdoc IOperatorState
-    mapping(uint256 => Slot.Data) public override votes;
+    mapping(uint256 => Slot.Data) public votes;
 
     constructor(address kernel_, address underlying_) {
         kernel = kernel_;
@@ -60,12 +60,12 @@ abstract contract Operator is IOperator {
     }
 
     /// @inheritdoc IOperatorStateDerived
-    function timeline(uint256 pid) external view override returns (uint256, uint256, uint256, uint256) {
+    function timeline(uint256 pid) external view returns (uint256, uint256, uint256, uint256) {
         return _timeline(pid);
     }
 
     /// @inheritdoc IOperatorFunctions
-    function set(bytes4 selector, bytes memory data) external override {
+    function set(bytes4 selector, bytes memory data) external {
         if (selector == IOperatorState.accumulator.selector) accumulator = abi.decode(data, (address));
         else if (selector == IOperatorState.sequencer.selector) sequencer = abi.decode(data, (address));
         else if (selector == IOperatorState.governor.selector) governor = abi.decode(data, (address));
@@ -77,7 +77,7 @@ abstract contract Operator is IOperator {
     }
 
     /// @inheritdoc IOperatorFunctions
-    function join(address tox, address toy) external override {
+    function join(address tox, address toy) external {
         if (observe) _observe();
         uint256 amount = ISequencer(sequencer).deposit();
         require(amount > 0, "0");
@@ -89,7 +89,7 @@ abstract contract Operator is IOperator {
     }
 
     /// @inheritdoc IOperatorFunctions
-    function exit(address to) external override {
+    function exit(address to) external {
         Slot.Data memory slot = IKernel(kernel).get(underlying, address(this));
         uint128 amount = Math.min(slot.x, slot.y).u128();
         require(amount > 0, "0");
@@ -100,17 +100,17 @@ abstract contract Operator is IOperator {
     }
 
     /// @inheritdoc IOperatorFunctions
-    function transfer(address to, uint128 x, uint128 y) external override {
+    function transfer(address to, uint128 x, uint128 y) external {
         IKernel(kernel).transfer(underlying, msg.sender, to, x, y);
 
         emit Transferred(msg.sender, to, x, y);
     }
 
     /// @inheritdoc IOperatorFunctions
-    function use(uint256 pid, uint8 support) external override virtual;
+    function use(uint256 pid, uint8 support) external virtual;
 
     /// @inheritdoc IOperatorFunctions
-    function route(uint256 pid, uint256 cursor) external override virtual;
+    function route(uint256 pid, uint256 cursor) external virtual;
 
     function _observe() internal view virtual;
 

@@ -13,18 +13,18 @@ import "../libraries/utils/RevertMsgExtractor.sol";
 /// @title Shard
 contract Shard is IShard, Access, Initializable {
     /// @inheritdoc IShardFunctions
-    function initialize() external override initializer {
+    function initialize() external initializer {
         _grantRole(Access(address(this)).ROOT(), msg.sender);
         emit Initialized();
     }
 
     /// @inheritdoc IShardFunctions
-    function transfer(address token, address to, uint256 amount) external override auth {
+    function transfer(address token, address to, uint256 amount) external auth {
         TransferHelper.safeTransfer(token, to, amount);
     }
 
     /// @inheritdoc IShardFunctions
-    function delegate(address token, address delegatee) external override auth {
+    function delegate(address token, address delegatee) external auth {
         IERC20CompLike(token).delegate(delegatee);
     }
 
@@ -32,7 +32,7 @@ contract Shard is IShard, Access, Initializable {
     function execute(
         address[] calldata targets,
         bytes[] calldata data
-    ) external override auth returns (bytes[] memory results) {
+    ) external auth returns (bytes[] memory results) {
         require(targets.length == data.length, "Mismatched inputs");
         bytes32 txHash = keccak256(abi.encode(targets, data));
 
