@@ -5,13 +5,11 @@ import { solidity } from 'ethereum-waffle';
 import { deploy } from './shared/utils';
 import { Executable, Shard, ShardMock } from '../typechain';
 
-const { createFixtureLoader } = waffle;
+const { loadFixture } = waffle;
 
 use(solidity);
 
 describe('Shard', async () => {
-  let loadFixture;
-
   let wallet;
   let other1;
 
@@ -20,6 +18,8 @@ describe('Shard', async () => {
   let executable: Executable;
 
   const fixture = async () => {
+    ;([wallet, other1] = await ethers.getSigners());
+
     shard = (await deploy('Shard')) as Shard;
     executable = (await deploy('Executable')) as Executable;
     shardMock = (await deploy('ShardMock', shard.address, executable.address)) as ShardMock;
@@ -28,8 +28,6 @@ describe('Shard', async () => {
   };
 
   before('fixture loader', async () => {
-    ;([wallet, other1] = await ethers.getSigners());
-    loadFixture = createFixtureLoader([wallet]);
   });
 
   beforeEach(async () => {

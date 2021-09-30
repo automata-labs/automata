@@ -6,11 +6,10 @@ import { deploy, expandTo18Decimals, ROOT } from './shared/utils';
 import { VToken, ERC20CompLike, Kernel, OperatorA, Sequencer } from '../typechain';
 
 const { MaxUint256 } = ethers.constants;
-const { createFixtureLoader, provider } = waffle;
+const { loadFixture, provider } = waffle;
 
 describe('VToken', async () => {
   let abi = new ethers.utils.AbiCoder();
-  let loadFixture;
   let wallet;
   let other1;
   let other2;
@@ -27,12 +26,14 @@ describe('VToken', async () => {
     return kernel.read(ethers.utils.keccak256(abi.encode(['address', 'address'], [tokenAddr, walletAddr])));
   };
 
-  const join = async (caller, tox, toy, amount) => {
+  const join = async (caller, amount, tox?, toy?) => {
     await token.connect(caller).transfer(sequencer.address, amount);
-    await operator.join(tox, toy);
+    await operator.join(tox || caller.address, toy || caller.address);
   };
 
   const fixture = async () => {
+    ;([wallet, other1, other2] = await ethers.getSigners());
+
     token = await erc20CompLikeFixture(provider, wallet);
 
     kernel = (await deploy('Kernel')) as Kernel;
@@ -58,18 +59,13 @@ describe('VToken', async () => {
     await fixture();
   };
 
-  before('fixture loader', async () => {
-    ;([wallet, other1, other2] = await ethers.getSigners());
-    loadFixture = createFixtureLoader([wallet]);
-  });
-
   describe('#mint', async () => {
     beforeEach(async () => {
       await loadFixture(mintFixture);
     });
 
     it('should mint', async () => {
-      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), wallet.address, vToken.address);
       expect((await read(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
       expect((await read(token.address, wallet.address)).y).to.equal(0);
       expect((await read(token.address, vToken.address)).x).to.equal(0);
@@ -88,7 +84,7 @@ describe('VToken', async () => {
       await expect(vToken.mint(wallet.address)).to.be.revertedWith('0');
     });
     it('should emit an event', async () => {
-      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), wallet.address, vToken.address);
       await expect(vToken.mint(wallet.address))
         .to.emit(vToken, 'Transfer')
         .withArgs(ethers.constants.AddressZero, wallet.address, expandTo18Decimals(100));
@@ -102,7 +98,7 @@ describe('VToken', async () => {
 
     it('should burn', async () => {
       // join & mint
-      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), wallet.address, vToken.address);
       await vToken.mint(wallet.address);
       expect(await vToken.totalSupply()).to.equal(expandTo18Decimals(100));
       expect(await vToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(100));
@@ -124,7 +120,7 @@ describe('VToken', async () => {
       await expect(vToken.burn(wallet.address)).to.be.revertedWith('0');
     });
     it('should emit an event', async () => {
-      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), wallet.address, vToken.address);
       await vToken.mint(wallet.address);
       await vToken.transfer(vToken.address, expandTo18Decimals(100));
       await expect(vToken.burn(wallet.address))

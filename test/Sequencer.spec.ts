@@ -2,30 +2,27 @@ import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 import * as _ from 'lodash';
 
-import { erc20CompLikeFixture, governorBravoFixture } from './shared/fixtures';
-import { deploy, evmBlockNumber, expandTo18Decimals } from './shared/utils';
-import { ERC20CompLike, GovernorBravoMock, Sequencer, Shard } from '../typechain';
+import { erc20CompLikeFixture } from './shared/fixtures';
+import { deploy, evmBlockNumber, evmMine, expandTo18Decimals } from './shared/utils';
+import { ERC20CompLike, Sequencer, Shard } from '../typechain';
 
 const { BigNumber, constants, provider } = ethers;
 const { MaxUint256 } = constants;
-const { createFixtureLoader } = waffle;
+const { loadFixture } = waffle;
 
 describe('Sequencer', async () => {
-  let abi = new ethers.utils.AbiCoder();
-  let loadFixture;  
   let wallet;
   let other1;
   let other2;
 
   let token: ERC20CompLike;
-  let governor: GovernorBravoMock;
 
   let sequencer: Sequencer;
 
   const fixture = async () => {
+    ;([wallet, other1, other2] = await ethers.getSigners());
+  
     token = await erc20CompLikeFixture(provider, wallet);
-    ;({ governor } = await governorBravoFixture(provider, token, wallet));
-
     sequencer = (await deploy('Sequencer', token.address)) as Sequencer;
   };
   
@@ -48,11 +45,6 @@ describe('Sequencer', async () => {
     await fixture();
     await token.approve(sequencer.address, MaxUint256);
   };
-
-  before('fixture loader', async () => {
-    ;([wallet, other1, other2] = await ethers.getSigners());
-    loadFixture = createFixtureLoader([wallet]);
-  });
 
   describe('#clone', async () => {
     beforeEach(async () => {
@@ -181,6 +173,10 @@ describe('Sequencer', async () => {
       await sequencer.clones(10);
       await token.transfer(sequencer.address, expandTo18Decimals(100));
       await sequencer.deposit();
+
+      // mine one block to register votes on `getPriorVotes`
+      await evmMine(provider);
+
       expect(await sequencer.liquidity()).to.equal(expandTo18Decimals(100));
       expect(await token.getCurrentVotes(await sequencer.shards(0))).to.equal(expandTo18Decimals(1).add(1));
       expect(await token.getPriorVotes(await sequencer.shards(0), (await evmBlockNumber(provider)) - 1))

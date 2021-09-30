@@ -5,11 +5,10 @@ import { deploy, MaxUint128 } from './shared/utils';
 import { Kernel } from '../typechain';
 
 const { BigNumber } = ethers;
-const { createFixtureLoader } = waffle;
+const { loadFixture } = waffle;
 
 describe('Kernel', async () => {
   let abi = new ethers.utils.AbiCoder();
-  let loadFixture;
   let wallet;
   let other1;
   let other2;
@@ -17,13 +16,9 @@ describe('Kernel', async () => {
   let kernel: Kernel;
 
   const fixture = async () => {
+    ;([wallet, other1, other2] = await ethers.getSigners());
     kernel = (await deploy('Kernel')) as Kernel;
   };
-
-  before('fixture loader', async () => {
-    ;([wallet, other1, other2] = await ethers.getSigners());
-    loadFixture = createFixtureLoader([wallet]);
-  });
 
   beforeEach(async () => {
     await loadFixture(fixture);

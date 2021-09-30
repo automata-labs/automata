@@ -6,11 +6,10 @@ import { deploy, expandTo18Decimals, Q128, ROOT } from './shared/utils';
 import { Accumulator, ERC20CompLike, Kernel, OperatorA, Sequencer } from '../typechain';
 
 const { MaxUint256 } = ethers.constants;
-const { createFixtureLoader, provider } = waffle;
+const { loadFixture, provider } = waffle;
 
 describe('Accumulator', async () => {
   let abi = new ethers.utils.AbiCoder();
-  let loadFixture;
   let wallet;
   let other1;
   let other2;
@@ -38,12 +37,14 @@ describe('Accumulator', async () => {
     return accumulator.get(underlying, owner);
   };
 
-  const join = async (caller, tox, toy, amount) => {
+  const join = async (caller, amount, tox?, toy?) => {
     await token.connect(caller).transfer(sequencer.address, amount);
-    await operator.join(tox, toy);
+    await operator.join(tox || caller.address, toy || caller.address);
   };
 
   const fixture = async () => {
+    ;([wallet, other1, other2] = await ethers.getSigners());
+
     token = await erc20CompLikeFixture(provider, wallet);
 
     kernel = (await deploy('Kernel')) as Kernel;
@@ -62,18 +63,13 @@ describe('Accumulator', async () => {
     await sequencer.clones(10);
   };
 
-  before('fixture loader', async () => {
-    ;([wallet, other1, other2] = await ethers.getSigners());
-    loadFixture = createFixtureLoader([wallet]);
-  });
-
   describe('#grow', async () => {
     beforeEach(async () => {
       await loadFixture(fixture);
     });
 
     it('should grow', async () => {
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), accumulator.address, accumulator.address);
       await accumulator.stake(token.address, wallet.address);
       await accumulator.grow(token.address);
 
@@ -92,7 +88,7 @@ describe('Accumulator', async () => {
       expect((await globs(token.address)).x128).to.equal(Q128);
     });
     it('should grow dust amount', async () => {
-      await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), accumulator.address, wallet.address);
       await accumulator.stake(token.address, wallet.address);
       await operator.transfer(accumulator.address, 0, expandTo18Decimals(1));
       await accumulator.grow(token.address);
@@ -111,11 +107,11 @@ describe('Accumulator', async () => {
       expect((await globs(token.address)).x128).to.equal(Q128.div(100));
     });
     it('should grow for multiple stakers', async () => {
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), accumulator.address, accumulator.address);
       await accumulator.stake(token.address, wallet.address);
       await accumulator.grow(token.address);
 
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), accumulator.address, accumulator.address);
       await accumulator.stake(token.address, other1.address);
       await accumulator.grow(token.address);
 
@@ -134,11 +130,11 @@ describe('Accumulator', async () => {
       expect((await globs(token.address)).x128).to.equal(Q128.mul(3).div(2));
     });
     it('should revert if growing when nothing staked', async () => {
-      await join(wallet, wallet.address, accumulator.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), wallet.address, accumulator.address);
       await expect(accumulator.grow(token.address)).to.be.reverted;
     });
     it('should emit an event', async () => {
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), accumulator.address, accumulator.address);
       await accumulator.stake(token.address, wallet.address);
       await expect(accumulator.grow(token.address))
         .to.emit(accumulator, 'Grown')
@@ -153,7 +149,7 @@ describe('Accumulator', async () => {
 
     it('should stake', async () => {
       // join and stake
-      await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), accumulator.address, wallet.address);
       await accumulator.stake(token.address, wallet.address);
       expect((await units(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
       expect((await units(token.address, wallet.address)).y).to.equal(0);
@@ -165,7 +161,7 @@ describe('Accumulator', async () => {
     });
     it('should stake to another account', async () => {
       // join with `wallet`, stake with `other1`
-      await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), accumulator.address, wallet.address);
       await accumulator.stake(token.address, other1.address);
 
       expect((await units(token.address, wallet.address)).x).to.equal(0);
@@ -181,12 +177,12 @@ describe('Accumulator', async () => {
       expect((await globs(token.address)).x128).to.equal(0);
     });
     it('should stake and auto-update `y`', async () => {
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), accumulator.address, accumulator.address);
       await accumulator.stake(token.address, wallet.address);
       await accumulator.grow(token.address);
 
       // should update `y` when staking on existing stake
-      await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), accumulator.address, wallet.address);
       await accumulator.stake(token.address, wallet.address);
       expect((await units(token.address, wallet.address)).x).to.equal(expandTo18Decimals(200));
       expect((await units(token.address, wallet.address)).y).to.equal(expandTo18Decimals(100));
@@ -197,11 +193,11 @@ describe('Accumulator', async () => {
       expect((await globs(token.address)).x128).to.equal(Q128);
     });
     it('should stake from multiple accounts', async () => {
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), accumulator.address, accumulator.address);
       await accumulator.stake(token.address, wallet.address);
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(50));
+      await join(wallet, expandTo18Decimals(50), accumulator.address, accumulator.address);
       await accumulator.stake(token.address, other1.address);
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(25));
+      await join(wallet, expandTo18Decimals(25), accumulator.address, accumulator.address);
       await accumulator.stake(token.address, other2.address);
 
       expect((await globs(token.address)).x).to.equal(expandTo18Decimals(175));
@@ -213,7 +209,7 @@ describe('Accumulator', async () => {
         .to.be.revertedWith('0');
     });
     it('should emit an event', async () => {
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), accumulator.address, accumulator.address);
       await expect(accumulator.stake(token.address, wallet.address))
         .to.emit(accumulator, 'Staked')
         .withArgs(wallet.address, token.address, wallet.address, expandTo18Decimals(100));
@@ -227,7 +223,7 @@ describe('Accumulator', async () => {
 
     it('should unstake', async () => {
       // stake
-      await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), accumulator.address, wallet.address);
       await accumulator.stake(token.address, wallet.address);
       expect((await units(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
       expect((await units(token.address, wallet.address)).y).to.equal(0);
@@ -240,7 +236,7 @@ describe('Accumulator', async () => {
       expect((await units(token.address, wallet.address)).x128).to.equal(0);
     });
     it('should unstake and auto-update `y`', async () => {
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), accumulator.address, accumulator.address);
       await accumulator.stake(token.address, wallet.address);
       await accumulator.grow(token.address);
 
@@ -259,7 +255,7 @@ describe('Accumulator', async () => {
         .to.be.revertedWith('0x11');
     });
     it('should emit an event', async () => {
-      await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), accumulator.address, wallet.address);
       await accumulator.stake(token.address, wallet.address);
       await expect(accumulator.unstake(token.address, wallet.address, expandTo18Decimals(100)))
         .to.emit(accumulator, 'Unstaked')
@@ -273,7 +269,7 @@ describe('Accumulator', async () => {
     });
 
     it('should collect', async () => {
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), accumulator.address, accumulator.address);
       await accumulator.stake(token.address, wallet.address);
       await accumulator.grow(token.address);
       await accumulator.collect(token.address, wallet.address, expandTo18Decimals(100));
@@ -287,7 +283,7 @@ describe('Accumulator', async () => {
       expect((await globs(token.address)).y).to.equal(0);
     });
     it('should collect partially', async () => {
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), accumulator.address, accumulator.address);
       await accumulator.stake(token.address, wallet.address);
       await accumulator.grow(token.address);
       await accumulator.collect(token.address, wallet.address, expandTo18Decimals(75));
@@ -309,7 +305,7 @@ describe('Accumulator', async () => {
         .to.be.revertedWith('0');
     });
     it('should emit an event', async () => {
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), accumulator.address, accumulator.address);
       await accumulator.stake(token.address, wallet.address);
       await accumulator.grow(token.address);
       await expect(accumulator.collect(token.address, wallet.address, expandTo18Decimals(100)))

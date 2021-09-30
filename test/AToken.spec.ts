@@ -6,11 +6,10 @@ import { deploy, expandTo18Decimals, ROOT } from './shared/utils';
 import { AToken, ERC20CompLike, Kernel, OperatorA, Sequencer } from '../typechain';
 
 const { MaxUint256 } = ethers.constants;
-const { createFixtureLoader, provider } = waffle;
+const { loadFixture, provider } = waffle;
 
 describe('AToken', async () => {
   let abi = new ethers.utils.AbiCoder();
-  let loadFixture;
   let wallet;
   let other1;
   let other2;
@@ -27,12 +26,14 @@ describe('AToken', async () => {
     return kernel.read(ethers.utils.keccak256(abi.encode(['address', 'address'], [tokenAddr, walletAddr])));
   };
 
-  const join = async (caller, tox, toy, amount) => {
+  const join = async (caller, amount, tox?, toy?) => {
     await token.connect(caller).transfer(sequencer.address, amount);
-    await operator.join(tox, toy);
+    await operator.join(tox || caller.address, toy || caller.address);
   };
 
   const fixture = async () => {
+    ;([wallet, other1, other2] = await ethers.getSigners());
+
     token = await erc20CompLikeFixture(provider, wallet);
 
     kernel = (await deploy('Kernel')) as Kernel;
@@ -58,18 +59,13 @@ describe('AToken', async () => {
     await fixture();
   };
 
-  before('fixture loader', async () => {
-    ;([wallet, other1, other2] = await ethers.getSigners());
-    loadFixture = createFixtureLoader([wallet]);
-  });
-
   describe('#mint', async () => {
     beforeEach(async () => {
       await loadFixture(mintFixture);
     });
 
     it('should mint', async () => {
-      await join(wallet, aToken.address, wallet.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), aToken.address);
       expect((await read(token.address, aToken.address)).x).to.equal(expandTo18Decimals(100));
       expect((await read(token.address, aToken.address)).y).to.equal(0);
       expect((await read(token.address, wallet.address)).x).to.equal(0);
@@ -88,7 +84,7 @@ describe('AToken', async () => {
       await expect(aToken.mint(wallet.address)).to.be.revertedWith('0');
     });
     it('should emit an event', async () => {
-      await join(wallet, aToken.address, wallet.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), aToken.address);
       await expect(aToken.mint(wallet.address))
         .to.emit(aToken, 'Transfer')
         .withArgs(ethers.constants.AddressZero, wallet.address, expandTo18Decimals(100));
@@ -102,7 +98,7 @@ describe('AToken', async () => {
 
     it('should burn', async () => {
       // join & mint
-      await join(wallet, aToken.address, wallet.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), aToken.address);
       await aToken.mint(wallet.address);
       expect(await aToken.totalSupply()).to.equal(expandTo18Decimals(100));
       expect(await aToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(100));
@@ -124,7 +120,7 @@ describe('AToken', async () => {
       await expect(aToken.burn(wallet.address)).to.be.revertedWith('0');
     });
     it('should emit an event', async () => {
-      await join(wallet, aToken.address, wallet.address, expandTo18Decimals(100));
+      await join(wallet, expandTo18Decimals(100), aToken.address);
       await aToken.mint(wallet.address);
       await aToken.transfer(aToken.address, expandTo18Decimals(100));
       await expect(aToken.burn(wallet.address))
