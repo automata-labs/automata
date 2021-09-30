@@ -80,6 +80,7 @@ abstract contract Operator is IOperator {
     function join(address tox, address toy) external override {
         if (observe) _observe();
         uint256 amount = ISequencer(sequencer).deposit();
+        require(amount > 0, "0");
         require(IKernel(kernel).pool(underlying, amount.u128().i128()) <= limit, "LIM");
         IKernel(kernel).modify(underlying, tox, amount.u128().i128(), 0);
         IKernel(kernel).modify(underlying, toy, 0, amount.u128().i128());
@@ -91,6 +92,7 @@ abstract contract Operator is IOperator {
     function exit(address to) external override {
         Slot.Data memory slot = IKernel(kernel).get(underlying, address(this));
         uint128 amount = Math.min(slot.x, slot.y).u128();
+        require(amount > 0, "0");
         IKernel(kernel).modify(underlying, address(this), -amount.i128(), -amount.i128());
         ISequencer(sequencer).withdraw(to, amount);
 
