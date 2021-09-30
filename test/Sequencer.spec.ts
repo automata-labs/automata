@@ -16,7 +16,6 @@ describe('Sequencer', async () => {
   let other2;
 
   let token: ERC20CompLike;
-
   let sequencer: Sequencer;
 
   const fixture = async () => {

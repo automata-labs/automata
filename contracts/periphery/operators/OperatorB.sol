@@ -33,6 +33,8 @@ contract OperatorB is Operator {
         } else {
             revert("8");
         }
+
+        emit Used(msg.sender, pid, support);
     }
 
     /// @inheritdoc IOperatorFunctions

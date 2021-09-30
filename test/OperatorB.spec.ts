@@ -1,20 +1,31 @@
-import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
-import { Accumulator, ERC20CompLike, GovernorBravoMock, Kernel, Linear, OperatorB, Sequencer } from '../typechain';
+import { shouldBehaveLikeLinearRoute, shouldBehaveLikeMiscRoute, shouldBehaveLikeUse } from './Operator.behavior';
 import { erc20CompLikeFixture, governorBravoFixture } from './shared/fixtures';
-import { deploy, expandTo18Decimals, evmMiner, ROOT } from './shared/utils';
+import {
+  deploy,
+  expandTo18Decimals,
+  ROOT,
+} from './shared/utils';
+import {
+  Accumulator,
+  ERC20CompLike,
+  GovernorBravoMock,
+  Kernel,
+  Linear,
+  OperatorB,
+  Root,
+  Sequencer,
+} from '../typechain';
+import { functions } from './shared/functions';
 
-const { BigNumber, constants } = ethers;
-const { MaxUint256 } = constants;
-const { createFixtureLoader, provider } = waffle;
+const { MaxUint256 } = ethers.constants;
+const { loadFixture, provider } = waffle;
 
-describe.skip('OperatorB', async () => {
+describe('OperatorB', async () => {
   let abi = new ethers.utils.AbiCoder();
-  let loadFixture;
   let wallet;
   let other1;
-  let other2;
 
   let token: ERC20CompLike;
   let governor: GovernorBravoMock;
@@ -24,58 +35,31 @@ describe.skip('OperatorB', async () => {
   let sequencer: Sequencer;
   let operator: OperatorB;
   let linear: Linear;
+  let root: Root;
 
-  const read = (tokenAddr, walletAddr) => {
-    return kernel.read(ethers.utils.keccak256(abi.encode(['address', 'address'], [tokenAddr, walletAddr])));
-  };
+  let pid = 2;
 
-  const join = async (caller, tox, toy, amount) => {
-    await token.connect(caller).transfer(sequencer.address, amount);
-    await operator.join(tox, toy);
-  };
-
-  const propose = async (governor) => {
-    await token.delegate(wallet.address);
-    await governor.propose(
-      [token.address],
-      [0],
-      ['mint(address,uint256)'],
-      [abi.encode(['address', 'uint256'], [other1.address, expandTo18Decimals(100)])],
-      `Mint to ${other1.address}`
-    );
-  };
+  let propose;
+  let join;
+  let collect;
+  let use;
+  let timetravel;
+  let stake;
 
   const fixture = async () => {
+    [wallet, other1] = await provider.getWallets();
+
     token = await erc20CompLikeFixture(provider, wallet);
-    ;({ governor } = await governorBravoFixture(provider, token, wallet));
+    ({ governor } = await governorBravoFixture(provider, token, wallet));
 
     kernel = (await deploy('Kernel')) as Kernel;
     accumulator = (await deploy('Accumulator', kernel.address)) as Accumulator;
     sequencer = (await deploy('Sequencer', token.address)) as Sequencer;
     operator = (await deploy('OperatorB', kernel.address, token.address)) as OperatorB;
     linear = (await deploy('Linear')) as Linear;
-  };
+    root = (await deploy('Root')) as Root;
 
-  const joinFixture = async () => {
-    await fixture();
-
-    await token.approve(operator.address, MaxUint256);
-    await token.approve(sequencer.address, MaxUint256);
-    await sequencer.clones(10);
-
-    await kernel.grantRole(ROOT, operator.address);
-    await sequencer.grantRole(ROOT, operator.address);
-
-    await operator.set(operator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
-    await operator.set(operator.interface.getSighash('governor'), abi.encode(['address'], [governor.address]));
-    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(10000)]));
-  };
-
-  const exitFixture = async () => {
-    await joinFixture();
-
-    await token.transfer(sequencer.address, expandTo18Decimals(100));
-    await operator.join(wallet.address, wallet.address);
+    ({ propose, join, collect, use, timetravel, stake } = functions({ token, kernel, accumulator, sequencer, operator }));
   };
 
   const useFixture = async () => {
@@ -96,244 +80,104 @@ describe.skip('OperatorB', async () => {
     await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(10000)]));
   };
 
-  const routeFixture = async () => {
-    await useFixture();
+  const routeBaseFixture = async () => {
+    await fixture();
+
+    await kernel.grantRole(ROOT, operator.address);
+    await kernel.grantRole(ROOT, accumulator.address);
+    await sequencer.grantRole(ROOT, operator.address);
+
+    await operator.set(operator.interface.getSighash('accumulator'), abi.encode(['address'], [accumulator.address]));
+    await operator.set(operator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
+    await operator.set(operator.interface.getSighash('governor'), abi.encode(['address'], [governor.address]));
+    await operator.set(operator.interface.getSighash('period'), abi.encode(['uint32'], [80]));
+    await operator.set(operator.interface.getSighash('computer'), abi.encode(['address'], [linear.address]));
+    await operator.set(operator.interface.getSighash('observe'), abi.encode(['bool'], [false]));
+    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(10000)]));
   };
 
-  before('fixture loader', async () => {
-    ;([wallet, other1, other2] = await ethers.getSigners());
-    loadFixture = createFixtureLoader([wallet]);
-  });
+  const routeLinearFixture = async () => {
+    await routeBaseFixture();
 
-  describe('#join', async () => {
-    beforeEach(async () => {
-      await loadFixture(joinFixture);
-    });
+    await token.approve(operator.address, MaxUint256);
+    await token.approve(sequencer.address, MaxUint256);
+    await sequencer.clones(3);
+  };
 
-    it('should join', async () => {
-      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
-      expect(await read(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
-    });
-    it('should join multiple times', async () => {
-      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(500));
-      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
-      expect(await read(token.address, wallet.address)).to.eql([expandTo18Decimals(510), expandTo18Decimals(510)]);
-    });
-    it('should join dust', async () => {
-      await join(wallet, wallet.address, wallet.address, 1);
-      expect(await read(token.address, wallet.address)).to.eql([BigNumber.from(1), BigNumber.from(1)]);
-    });
-    it.skip('should join line', async () => {});
-    it.skip('should join with different accounts', async () => {});
-    it('should join to another accounts', async () => {
-      await join(wallet, other1.address, other2.address, expandTo18Decimals(10));
-      expect(await read(token.address, other1.address)).to.eql([expandTo18Decimals(10), BigNumber.from(0)]);
-      expect(await read(token.address, other2.address)).to.eql([BigNumber.from(0), expandTo18Decimals(10)]);
-    });
-    it('should join to a slot with non-symmetric values', async () => {
-      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
-      await operator.transfer(other1.address, expandTo18Decimals(25), expandTo18Decimals(75));
-      expect(await read(token.address, wallet.address)).to.eql([expandTo18Decimals(75), expandTo18Decimals(25)]);
-      expect(await read(token.address, other1.address)).to.eql([expandTo18Decimals(25), expandTo18Decimals(75)]);
+  const routeMiscFixture = async () => {
+    await routeBaseFixture();
 
-      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
-      expect(await read(token.address, wallet.address)).to.eql([expandTo18Decimals(175), expandTo18Decimals(125)]);
-    });
-    it('should join when governor not active', async () => {
-      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
-      expect(await read(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
-    });
-    it('should join when governor active but observe is false', async () => {
-      await operator.set(operator.interface.getSighash('observe'), abi.encode(['bool'], [false]));
-      await propose(governor);
-      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(10));
-      expect(await read(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
-    });
-    it('should revert when zero tokens', async () => {
-      await expect(operator.join(wallet.address, wallet.address)).to.be.revertedWith('0');
-    });
-    it('should revert when overflowing limit', async () => {
-      await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(100)]));
-      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
-      await expect(join(wallet, wallet.address, wallet.address, 1)).to.be.revertedWith('LIM');
-    });
-    it.skip('should revert when join on zero shards', async () => {});
-    it('should revert when governor is active', async () => {
-      await propose(governor);
-
-      await token.transfer(sequencer.address, expandTo18Decimals(10));
-      await expect(operator.join(wallet.address, wallet.address)).to.be.revertedWith('OBS');
-      await evmMiner(provider, (await governor.votingPeriod()).toNumber());
-      await operator.join(wallet.address, wallet.address);
-      expect(await read(token.address, wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
-    });
-    it.skip('should revert when overflowing sequencer space', async () => {});
-    it.skip('should emit an event', async () => {});
-  });
-
-  describe('#exit', async () => {
-    beforeEach(async () => {
-      await loadFixture(exitFixture);
-    });
-
-    it('should exit', async () => {
-      const balanceBefore = await token.balanceOf(wallet.address);
-      await operator.transfer(operator.address, expandTo18Decimals(10), expandTo18Decimals(10));
-      await operator.exit(wallet.address);
-      const balanceAfter = await token.balanceOf(wallet.address);
-
-      expect(balanceAfter).to.equal(balanceBefore.add(expandTo18Decimals(10)));
-    });
-    it.skip('should exit multiple times', async () => {});
-    it.skip('should exit with different accounts', async () => {});
-    it.skip('should exit to another account', async () => {});
-    it.skip('should exit dust', async () => {});
-    it.skip('should exit line', async () => {});
-    it.skip('should exit on non-symmetric slot', async () => {});
-    it.skip('should exit when governor is active', async () => {});
-    it.skip('should revert when exiting zero tokens', async () => {});
-    it.skip('should revert when exiting on zero shards', async () => {});
-    it.skip('should revert when underflowing sequencer space', async () => {});
-    it.skip('should emit an event', async () => {});
-  });
+    await token.approve(operator.address, MaxUint256);
+    await token.approve(sequencer.address, MaxUint256);
+    await sequencer.clones(10);
+  };
 
   describe('#use', async () => {
-    beforeEach(async () => {
+    beforeEach(async function () {
       await loadFixture(useFixture);
+
+      this.pid = pid;
+
+      this.provider = provider;
+      this.wallet = wallet;
+      this.token = token;
+      this.governor = governor;
+      this.accumulator = accumulator;
+      this.operator = operator;
+      
+      this.propose = propose;
+      this.join = join;
+      this.timetravel = timetravel;
+      this.stake = stake;
     });
 
-    it('should use', async () => {
-      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
-      await operator.transfer(accumulator.address, expandTo18Decimals(100), 0);
-      await accumulator.stake(token.address, wallet.address);
-      
-      await propose(governor);
-      
-      await operator.transfer(accumulator.address, 0, expandTo18Decimals(100));
-      await operator.use(2, 1);
-      expect((await operator.votes(2)).x).to.equal(expandTo18Decimals(100));
-      expect((await operator.votes(2)).y).to.equal(0);
-    });
-    it('should revert when nothing staked', async () => {
-      await expect(operator.use(2, 1)).to.be.reverted;
-    })
-    it('should revert when proposal is not created', async () => {
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
-      await accumulator.stake(token.address, wallet.address);
-      await expect(operator.use(2, 1)).to.be.revertedWith('E');
-    });
-    it('should revert when zero', async () => {
-      await join(wallet, wallet.address, wallet.address, expandTo18Decimals(100));
-      await operator.transfer(accumulator.address, expandTo18Decimals(100), 0);
-      await accumulator.stake(token.address, wallet.address);
-      
-      await propose(governor);
-      
-      await expect(operator.use(2, 1)).to.be.revertedWith('0');
-    });
-    it.skip('should emit an event', async () => {});
+    shouldBehaveLikeUse();
   });
 
   describe('#route', async () => {
-    beforeEach(async () => {
-      await loadFixture(routeFixture);
+    describe('linear', async () => {
+      beforeEach(async function () {
+        await loadFixture(routeLinearFixture);
+
+        this.pid = pid;
+
+        this.provider = provider;
+        this.wallet = wallet;
+        this.token = token;
+        this.governor = governor;
+        this.accumulator = accumulator;
+        this.operator = operator;
+        
+        this.propose = propose;
+        this.join = join;
+        this.collect = collect;
+        this.use = use;
+        this.timetravel = timetravel;
+        this.stake = stake;
+      });
+
+      shouldBehaveLikeLinearRoute();
     });
+  
+    describe('#misc', async () => {
+      beforeEach(async function () {
+        await loadFixture(routeMiscFixture);
 
-    it('should route with all (100)', async () => {
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
-      await accumulator.stake(token.address, wallet.address);
-      await propose(governor);
-      await operator.use(2, 1);
+        this.pid = pid;
 
-      await evmMiner(
-        provider,
-        (await operator.timeline(2))[2].toNumber() - (await provider.getBlockNumber())
-      );
+        this.provider = provider;
+        this.wallet = wallet;
+        this.governor = governor;
+        this.operator = operator;
+        
+        this.propose = propose;
+        this.join = join;
+        this.use = use;
+        this.timetravel = timetravel;
+        this.stake = stake;
+      });
 
-      await expect(operator.route(2, 10)).to.be.revertedWith('F0');
-      await expect(operator.route(2, 9)).to.be.revertedWith('F0');
-      await expect(operator.route(2, 8)).to.be.revertedWith('F0');
-      await expect(operator.route(2, 7)).to.be.revertedWith('F0');
-      await operator.route(2, 6);
-      await operator.route(2, 5);
-      await operator.route(2, 4);
-      await operator.route(2, 3);
-      await operator.route(2, 2);
-      await operator.route(2, 1);
-      await operator.route(2, 0);
+      shouldBehaveLikeMiscRoute();
     });
-    it('should route with all (75)', async () => {
-      // route with 75, with excess of 12.
-      // we allow route with cursor, and then we have 63 left.
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(75));
-      await accumulator.stake(token.address, wallet.address);
-      await propose(governor);
-      await operator.use(2, 1);
-
-      await evmMiner(
-        provider,
-        (await operator.timeline(2))[2].toNumber() - (await provider.getBlockNumber())
-      );
-
-      await expect(operator.route(2, 10)).to.be.revertedWith('F0');
-      await expect(operator.route(2, 9)).to.be.revertedWith('F0');
-      await expect(operator.route(2, 8)).to.be.revertedWith('F0');
-      await expect(operator.route(2, 7)).to.be.revertedWith('F0');
-      await operator.route(2, 6);
-      await operator.route(2, 5);
-      await operator.route(2, 4);
-      await operator.route(2, 3);
-      await operator.route(2, 2);
-      await operator.route(2, 1);
-      await operator.route(2, 0);
-    });
-    it('should route with all (38)', async () => {
-      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(38));
-      await accumulator.stake(token.address, wallet.address);
-      await propose(governor);
-      await operator.use(2, 1);
-
-      await evmMiner(
-        provider,
-        (await operator.timeline(2))[2].toNumber() - (await provider.getBlockNumber())
-      );
-
-      await expect(operator.route(2, 10)).to.be.revertedWith('F0');
-      await expect(operator.route(2, 9)).to.be.revertedWith('F0');
-      await expect(operator.route(2, 8)).to.be.revertedWith('F0');
-      await expect(operator.route(2, 7)).to.be.revertedWith('F0');
-      await expect(operator.route(2, 6)).to.be.revertedWith('F0');
-      await operator.route(2, 5);
-      await operator.route(2, 4);
-      await operator.route(2, 3);
-      await operator.route(2, 2);
-      await operator.route(2, 1);
-      await operator.route(2, 0);
-    });
-    it('should route with 75 out of 100', async () => {
-      await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
-      await accumulator.stake(token.address, wallet.address);
-      await propose(governor);
-      await operator.transfer(accumulator.address, 0, expandTo18Decimals(75));
-      await operator.use(2, 1);
-
-      await evmMiner(
-        provider,
-        (await operator.timeline(2))[2].toNumber() - (await provider.getBlockNumber())
-      );
-
-      await expect(operator.route(2, 10)).to.be.revertedWith('F0');
-      await expect(operator.route(2, 9)).to.be.revertedWith('F0');
-      await expect(operator.route(2, 8)).to.be.revertedWith('F0');
-      await expect(operator.route(2, 7)).to.be.revertedWith('F0');
-      await operator.route(2, 6);
-      await operator.route(2, 5);
-      await expect(operator.route(2, 4)).to.be.revertedWith('F0');
-      await expect(operator.route(2, 3)).to.be.revertedWith('F0');
-      await operator.route(2, 2)
-      await operator.route(2, 1);
-      await expect(operator.route(2, 0)).to.be.revertedWith('F0');
-    });
-    it.skip('should emit an event', async () => {});
   });
 });
