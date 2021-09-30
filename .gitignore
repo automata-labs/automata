@@ -1,6 +1,8 @@
 .env
 node_modules
 deprecated
+contracts/echidna
+crytic-export
 
 # Hardhat files
 cache
