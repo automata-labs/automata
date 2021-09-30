@@ -15,9 +15,9 @@ contract VToken is IToken, ERC20Permit {
     using Shell for IKernel;
 
     /// @inheritdoc IToken
-    IKernel public immutable override kernel;
+    IKernel public immutable kernel;
     /// @inheritdoc IToken
-    address public immutable override underlying;
+    address public immutable underlying;
 
     constructor(
         IKernel kernel_,
@@ -30,14 +30,14 @@ contract VToken is IToken, ERC20Permit {
     }
 
     /// @inheritdoc IToken
-    function mint(address to) external override returns (uint256 amount) {
+    function mint(address to) external returns (uint256 amount) {
         amount = kernel.get(underlying, address(this)).y - _totalSupply.u128();
         require(amount > 0, "0");
         require(_mint(to, amount), "MINT");
     }
 
     /// @inheritdoc IToken
-    function burn(address to) external override returns (uint256 amount) {
+    function burn(address to) external returns (uint256 amount) {
         amount = _balanceOf[address(this)];
         require(amount > 0, "0");
         require(_burn(address(this), amount), "BURN");

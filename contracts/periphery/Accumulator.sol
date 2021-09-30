@@ -21,24 +21,24 @@ contract Accumulator is IAccumulator {
     using Unit for Unit.Data;
 
     /// @inheritdoc IAccumulatorImmutables
-    IKernel public immutable override kernel;
+    IKernel public immutable kernel;
 
     /// @inheritdoc IAccumulatorState
-    mapping(address => Glob.Data) public override globs;
+    mapping(address => Glob.Data) public globs;
     /// @inheritdoc IAccumulatorState
-    mapping(bytes32 => Unit.Data) public override units;
+    mapping(bytes32 => Unit.Data) public units;
 
     constructor(IKernel kernel_) {
         kernel = kernel_;
     }
 
     /// @inheritdoc IAccumulatorStateDerived
-    function get(address underlying, address owner) external view override returns (Unit.Data memory) {
+    function get(address underlying, address owner) external view returns (Unit.Data memory) {
         return units.get(underlying, owner).normalize(globs[underlying].x128);
     }
 
     /// @inheritdoc IAccumulatorFunctions
-    function grow(address underlying) external override returns (uint128 dy) {
+    function grow(address underlying) external returns (uint128 dy) {
         dy = kernel.get(underlying, address(this)).y - globs[underlying].y;
         require(dy > 0, "0");
 
@@ -48,7 +48,7 @@ contract Accumulator is IAccumulator {
     }
 
     /// @inheritdoc IAccumulatorFunctions
-    function stake(address underlying, address to) external override returns (uint128 dx) {
+    function stake(address underlying, address to) external returns (uint128 dx) {
         dx = kernel.get(underlying, address(this)).x - globs[underlying].x;
         require(dx > 0, "0");
 
@@ -59,7 +59,7 @@ contract Accumulator is IAccumulator {
     }
 
     /// @inheritdoc IAccumulatorFunctions
-    function unstake(address underlying, address to, uint128 dx) external override {
+    function unstake(address underlying, address to, uint128 dx) external {
         require(dx > 0, "0");
 
         units.get(underlying, msg.sender).modify(-dx.i128(), 0, globs[underlying].x128);
@@ -70,7 +70,7 @@ contract Accumulator is IAccumulator {
     }
 
     /// @inheritdoc IAccumulatorFunctions
-    function collect(address underlying, address to, uint128 dy) external override returns (uint128 c) {
+    function collect(address underlying, address to, uint128 dy) external returns (uint128 c) {
         uint128 y = units.get(underlying, to).normalize(globs[underlying].x128).y;
         c = (dy > y) ? y : dy;
         require(c > 0, "0");
