@@ -3,7 +3,7 @@ import { ethers, waffle } from 'hardhat';
 import * as _ from 'lodash';
 
 import { erc20CompLikeFixture, governorBravoFixture } from './shared/fixtures';
-import { deploy, expandTo18Decimals } from './shared/utils';
+import { deploy, evmBlockNumber, expandTo18Decimals } from './shared/utils';
 import { ERC20CompLike, GovernorBravoMock, Sequencer, Shard } from '../typechain';
 
 const { BigNumber, constants, provider } = ethers;
@@ -182,6 +182,9 @@ describe('Sequencer', async () => {
       await token.transfer(sequencer.address, expandTo18Decimals(100));
       await sequencer.deposit();
       expect(await sequencer.liquidity()).to.equal(expandTo18Decimals(100));
+      expect(await token.getCurrentVotes(await sequencer.shards(0))).to.equal(expandTo18Decimals(1).add(1));
+      expect(await token.getPriorVotes(await sequencer.shards(0), (await evmBlockNumber(provider)) - 1))
+        .to.equal(expandTo18Decimals(1).add(1));
     });
     it('should deposit 127 units', async () => {
       await sequencer.clones(10);

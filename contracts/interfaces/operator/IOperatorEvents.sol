@@ -11,6 +11,9 @@ interface IOperatorEvents {
     /// @notice Emitted when `exit` is called.
     event Exited(address sender, address to, uint128 amount);
 
+    /// @notice Emitted when `transfer` is called.
+    event Transferred(address sender, address to, uint128 x, uint128 y);
+
     /// @notice Emitted when `use` is called.
     event Used(address sender, uint256 pid, uint8 support);
 

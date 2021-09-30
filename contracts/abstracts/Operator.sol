@@ -100,6 +100,8 @@ abstract contract Operator is IOperator {
     /// @inheritdoc IOperatorFunctions
     function transfer(address to, uint128 x, uint128 y) external override {
         IKernel(kernel).transfer(underlying, msg.sender, to, x, y);
+
+        emit Transferred(msg.sender, to, x, y);
     }
 
     /// @inheritdoc IOperatorFunctions
