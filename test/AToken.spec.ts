@@ -46,17 +46,9 @@ describe('AToken', async () => {
     ({ read, join } = functions({ token, kernel, sequencer, operator }));
   };
 
-  const mintFixture = async () => {
-    await fixture();
-  };
-
-  const burnFixture = async () => {
-    await fixture();
-  };
-
   describe('#mint', async () => {
     beforeEach(async () => {
-      await loadFixture(mintFixture);
+      await loadFixture(fixture);
     });
 
     it('should mint', async () => {
@@ -88,7 +80,7 @@ describe('AToken', async () => {
 
   describe('#burn', async () => {
     beforeEach(async () => {
-      await loadFixture(burnFixture);
+      await loadFixture(fixture);
     });
 
     it('should burn', async () => {

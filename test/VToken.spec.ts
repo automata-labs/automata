@@ -48,25 +48,17 @@ describe('VToken', async () => {
     ({ read, join } = functions({ token, kernel, sequencer, operator }));
   };
 
-  const mintFixture = async () => {
-    await fixture();
-  };
-
-  const burnFixture = async () => {
-    await fixture();
-  };
-
   describe('#mint', async () => {
     beforeEach(async () => {
-      await loadFixture(mintFixture);
+      await loadFixture(fixture);
     });
 
     it('should mint', async () => {
       await join(wallet, expandTo18Decimals(100), wallet.address, vToken.address);
-      expect((await read(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
-      expect((await read(token.address, wallet.address)).y).to.equal(0);
       expect((await read(token.address, vToken.address)).x).to.equal(0);
       expect((await read(token.address, vToken.address)).y).to.equal(expandTo18Decimals(100));
+      expect((await read(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await read(token.address, wallet.address)).y).to.equal(0);
       
       // mint
       expect(await vToken.balanceOf(wallet.address)).to.equal(0);
@@ -90,7 +82,7 @@ describe('VToken', async () => {
 
   describe('#burn', async () => {
     beforeEach(async () => {
-      await loadFixture(burnFixture);
+      await loadFixture(fixture);
     });
 
     it('should burn', async () => {
