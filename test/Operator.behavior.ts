@@ -1,6 +1,186 @@
 import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
-import { expandTo18Decimals, expandWithDecimals } from './shared/utils';
+import { evmMiner, expandTo18Decimals, expandWithDecimals } from './shared/utils';
+
+const { BigNumber } = ethers;
+
+export function shouldBehaveLikeJoin() {
+  let abi = new ethers.utils.AbiCoder();
+
+  it('should join', async function () {
+    await this.join(this.wallet, expandTo18Decimals(10));
+    expect(await this.read(this.token.address, this.wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
+  });
+  it('should join multiple times', async function () {
+    await this.join(this.wallet, expandTo18Decimals(500));
+    await this.join(this.wallet, expandTo18Decimals(10));
+    expect(await this.read(this.token.address, this.wallet.address)).to.eql([expandTo18Decimals(510), expandTo18Decimals(510)]);
+  });
+  it('should join dust', async function () {
+    await this.join(this.wallet, 1);
+    expect(await this.read(this.token.address, this.wallet.address)).to.eql([BigNumber.from(1), BigNumber.from(1)]);
+  });
+  it('should join line', async function () {
+    await this.join(this.wallet, expandTo18Decimals(1023));
+    await expect(this.join(this.wallet, expandTo18Decimals(1023))).to.be.reverted.revertedWith('OVF');
+  });
+  it('should join with different accounts', async function () {
+    await this.join(this.wallet, expandTo18Decimals(10));
+    await this.token.transfer(this.other1.address, expandTo18Decimals(20));
+    await this.join(this.other1, expandTo18Decimals(20));
+
+    // `wallet`
+    expect((await this.read(this.token.address, this.wallet.address)).x).to.equal(expandTo18Decimals(10));
+    expect((await this.read(this.token.address, this.wallet.address)).y).to.equal(expandTo18Decimals(10));
+
+    // `other1`
+    expect((await this.read(this.token.address, this.other1.address)).x).to.equal(expandTo18Decimals(20));
+    expect((await this.read(this.token.address, this.other1.address)).y).to.equal(expandTo18Decimals(20));
+  });
+  it('should join to another accounts', async function () {
+    await this.join(this.wallet, expandTo18Decimals(10), this.other1.address, this.other2.address);
+    expect(await this.read(this.token.address, this.other1.address)).to.eql([expandTo18Decimals(10), BigNumber.from(0)]);
+    expect(await this.read(this.token.address, this.other2.address)).to.eql([BigNumber.from(0), expandTo18Decimals(10)]);
+  });
+  it('should join to a slot with non-symmetric values', async function () {
+    await this.join(this.wallet, expandTo18Decimals(100));
+    await this.operator.transfer(this.other1.address, expandTo18Decimals(25), expandTo18Decimals(75));
+    expect(await this.read(this.token.address, this.wallet.address)).to.eql([expandTo18Decimals(75), expandTo18Decimals(25)]);
+    expect(await this.read(this.token.address, this.other1.address)).to.eql([expandTo18Decimals(25), expandTo18Decimals(75)]);
+
+    await this.join(this.wallet, expandTo18Decimals(100));
+    expect(await this.read(this.token.address, this.wallet.address)).to.eql([expandTo18Decimals(175), expandTo18Decimals(125)]);
+  });
+  it('should join when governor not active', async function () {
+    await this.join(this.wallet, expandTo18Decimals(10));
+    expect(await this.read(this.token.address, this.wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
+  });
+  it('should join when governor active and observe is false', async function () {
+    await this.operator.set(this.operator.interface.getSighash('observe'), abi.encode(['bool'], [false]));
+    await this.propose(this.wallet, this.governor);
+    await this.join(this.wallet, expandTo18Decimals(10));
+    expect(await this.read(this.token.address, this.wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
+  });
+  it('should revert when zero tokens', async function () {
+    await expect(this.operator.join(this.wallet.address, this.wallet.address)).to.be.revertedWith('0');
+  });
+  it('should revert when overflowing limit', async function () {
+    await this.operator.set(this.operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(100)]));
+    await this.join(this.wallet, expandTo18Decimals(100));
+    await expect(this.join(this.wallet, 1)).to.be.revertedWith('LIM');
+  });
+  it('should revert when governor is active', async function () {
+    await this.propose(this.wallet, this.governor);
+
+    await this.token.transfer(this.sequencer.address, expandTo18Decimals(10));
+    await expect(this.operator.join(this.wallet.address, this.wallet.address)).to.be.revertedWith('OBS');
+    await evmMiner(this.provider, (await this.governor.votingPeriod()).toNumber());
+    await this.operator.join(this.wallet.address, this.wallet.address);
+    expect(await this.read(this.token.address, this.wallet.address)).to.eql([expandTo18Decimals(10), expandTo18Decimals(10)]);
+  });
+  it('should revert when overflowing sequencer space', async function () {
+    await this.join(this.wallet, expandTo18Decimals(1023));
+    await expect(this.join(this.wallet, 1)).to.be.revertedWith('OVF');
+  });
+  it('should emit an event', async function () {
+    await this.token.transfer(this.sequencer.address, expandTo18Decimals(1));
+    await expect(this.operator.join(this.wallet.address, this.wallet.address))
+      .to.emit(this.operator, 'Joined')
+      .withArgs(this.wallet.address, this.wallet.address, this.wallet.address, expandTo18Decimals(1));
+  });
+}
+
+export function shouldBehaveLikeExit() {
+  it('should exit', async function () {
+    await this.join(this.wallet, expandTo18Decimals(500));
+
+    const balanceBefore = await this.token.balanceOf(this.wallet.address);
+    await this.exit(this.wallet, expandTo18Decimals(10));
+    const balanceAfter = await this.token.balanceOf(this.wallet.address);
+    expect(balanceAfter).to.equal(balanceBefore.add(expandTo18Decimals(10)));
+  });
+  it('should exit multiple times', async function () {
+    await this.join(this.wallet, expandTo18Decimals(500));
+
+    const balanceBefore = await this.token.balanceOf(this.wallet.address);
+    await this.exit(this.wallet, expandTo18Decimals(10));
+    await this.exit(this.wallet, expandTo18Decimals(20));
+    const balanceAfter = await this.token.balanceOf(this.wallet.address);
+    expect(balanceAfter).to.equal(balanceBefore.add(expandTo18Decimals(30)));
+    expect((await this.read(this.token.address, this.wallet.address)).x).to.equal(expandTo18Decimals(470));
+  });
+  it('should exit with different accounts', async function () {
+    let balanceBefore;
+    let balanceAfter;
+
+    await this.join(this.wallet, expandTo18Decimals(100));
+    await this.token.transfer(this.other1.address, expandTo18Decimals(100));
+    await this.join(this.other1, expandTo18Decimals(100));
+
+    balanceBefore = await this.token.balanceOf(this.wallet.address);
+    await this.exit(this.wallet, expandTo18Decimals(10));
+    balanceAfter = await this.token.balanceOf(this.wallet.address);
+    expect(balanceAfter).to.equal(balanceBefore.add(expandTo18Decimals(10)));
+
+    balanceBefore = await this.token.balanceOf(this.other1.address);
+    await this.exit(this.other1, expandTo18Decimals(10));
+    balanceAfter = await this.token.balanceOf(this.other1.address);
+    expect(balanceAfter).to.equal(balanceBefore.add(expandTo18Decimals(10)));
+  });
+  it('should exit to another account', async function () {
+    await this.join(this.wallet, expandTo18Decimals(100));
+
+    const balanceBefore = await this.token.balanceOf(this.other1.address);
+    await this.exit(this.wallet, expandTo18Decimals(10), this.other1.address);
+    const balanceAfter = await this.token.balanceOf(this.other1.address);
+    expect(balanceAfter).to.equal(balanceBefore.add(expandTo18Decimals(10)));
+  });
+  it('should exit dust', async function () {
+    await this.join(this.wallet, expandTo18Decimals(100));
+
+    const balanceBefore = await this.token.balanceOf(this.wallet.address);
+    await this.exit(this.wallet, 1);
+    const balanceAfter = await this.token.balanceOf(this.wallet.address);
+    expect(balanceAfter).to.equal(balanceBefore.add(1));
+  });
+  it('should exit line', async function () {
+    await this.join(this.wallet, expandTo18Decimals(1023));
+
+    const balanceBefore = await this.token.balanceOf(this.wallet.address);
+    await this.exit(this.wallet, expandTo18Decimals(1023));
+    const balanceAfter = await this.token.balanceOf(this.wallet.address);
+    expect(balanceAfter).to.equal(balanceBefore.add(expandTo18Decimals(1023)));
+  });
+  it('should exit on non-symmetric slot', async function () {
+    await this.join(this.wallet, expandTo18Decimals(100));
+    await this.operator.transfer(this.operator.address, expandTo18Decimals(75), expandTo18Decimals(50));
+
+    const balanceBefore = await this.token.balanceOf(this.wallet.address);
+    await this.operator.exit(this.wallet.address);
+    const balanceAfter = await this.token.balanceOf(this.wallet.address);
+    expect(balanceAfter).to.equal(balanceBefore.add(expandTo18Decimals(50)));
+  });
+  it('should exit when governor is active', async function () {
+    await this.join(this.wallet, expandTo18Decimals(100));
+    await this.propose(this.wallet, this.governor);
+
+    const balanceBefore = await this.token.balanceOf(this.wallet.address);
+    await this.exit(this.wallet, expandTo18Decimals(100));
+    const balanceAfter = await this.token.balanceOf(this.wallet.address);
+    expect(balanceAfter).to.equal(balanceBefore.add(expandTo18Decimals(100)));
+  });
+  it('should revert when exiting zero tokens', async function () {
+    await expect(this.operator.exit(this.wallet.address)).to.be.revertedWith('0');
+  });
+  it('should emit an event', async function () {
+    await this.join(this.wallet, expandTo18Decimals(100));
+    await this.operator.transfer(this.operator.address, expandTo18Decimals(100), expandTo18Decimals(100));
+    await expect(this.operator.exit(this.wallet.address))
+      .to.emit(this.operator, 'Exited')
+      .withArgs(this.wallet.address, this.wallet.address, expandTo18Decimals(100));
+  });
+}
 
 export function shouldBehaveLikeUse() {
   it('should use', async function () {
@@ -28,7 +208,24 @@ export function shouldBehaveLikeUse() {
     // either `GovernorAlpha::state: invalid proposal id` or `GovernorBravo::state: invalid proposal id`
     await expect(this.operator.use(333, 1)).to.be.reverted;
   });
-  it.skip('should revert when `use` has not started', async function () {});
+  it('should revert when `support` is invalid', async function () {
+    await this.join(this.wallet, expandTo18Decimals(100), this.accumulator.address, this.wallet.address);
+    await this.accumulator.stake(this.token.address, this.wallet.address);
+    await this.propose(this.wallet, this.governor);
+    await this.operator.transfer(this.accumulator.address, 0, expandTo18Decimals(75));
+
+    for (let i = 2; i <= 8; i++) {
+      await expect(this.operator.use(this.pid, i)).to.be.revertedWith('8');
+    }
+  });
+  it.skip('should revert when `use` has not started', async function () {
+    await this.join(this.wallet, expandTo18Decimals(100), this.accumulator.address, this.wallet.address);
+    await this.accumulator.stake(this.token.address, this.wallet.address);
+    await this.operator.transfer(this.accumulator.address, 0, expandTo18Decimals(75));
+    await this.propose(this.wallet, this.governor);
+    await expect(this.operator.use(this.pid, 0)).to.be.revertedWith('BEG');
+    await expect(this.operator.use(this.pid, 1)).to.be.revertedWith('BEG');
+  });
   it('should revert when `use` has ended', async function () {
     await this.join(this.wallet, expandTo18Decimals(100));
     await this.stake(this.wallet, expandTo18Decimals(100));

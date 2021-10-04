@@ -1,6 +1,8 @@
 .env
 node_modules
 deprecated
+
+# Echidna
 contracts/echidna
 crytic-export
 
@@ -8,8 +10,9 @@ crytic-export
 cache
 artifacts
 typechain
+coverage
 
-# Code
+# Editor
 .vscode
 
 # Misc.

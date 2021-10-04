@@ -1,12 +1,12 @@
 import { ethers } from 'hardhat';
-import { Accumulator, ERC20CompLike, Kernel, OperatorA, OperatorB, Sequencer } from '../../typechain';
+import { Accumulator, ERC20CompLike, Kernel, OperatorA, OperatorB, OperatorMock, Sequencer } from '../../typechain';
 
 import { evmBlockNumber, evmMiner, expandTo18Decimals, MaxUint128 } from "./utils";
 
 type FunctionParameters = {
   token?: ERC20CompLike;
   kernel?: Kernel;
-  operator?: OperatorA | OperatorB,
+  operator?: OperatorA | OperatorB | OperatorMock,
   sequencer?: Sequencer,
   accumulator?: Accumulator,
 }

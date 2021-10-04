@@ -5,6 +5,7 @@ import '@nomiclabs/hardhat-waffle';
 import '@typechain/hardhat';
 import 'hardhat-gas-reporter';
 import 'hardhat-contract-sizer';
+import 'solidity-coverage';
 
 module.exports = {
   solidity: {

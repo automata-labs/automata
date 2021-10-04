@@ -6,8 +6,8 @@ interface ISequencerEvents {
     event Cloned(uint256 cursor, address shard);
 
     /// @notice Emitted when `sequence` is called.
-    event Sequenced(uint256 liquidity);
+    event Sequenced(address caller, uint256 liquidity);
 
     /// @notice Emitted when `withdraw` is called.
-    event Withdrawn(uint256 liquidity);
+    event Withdrawn(address caller, uint256 liquidity);
 }

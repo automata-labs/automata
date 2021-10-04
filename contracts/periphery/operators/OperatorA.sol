@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "../../abstracts/Operator.sol";
 
 import "../../interfaces/ISequencer.sol";
-import "../../interfaces/external/IERC20CompLike.sol";
 import "../../interfaces/external/IGovernorAlpha.sol";
 import "../../libraries/data/Checkpoint.sol";
 

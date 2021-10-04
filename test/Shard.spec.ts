@@ -27,9 +27,6 @@ describe('Shard', async () => {
     await shard.grantRole('0x00000000', shardMock.address);
   };
 
-  before('fixture loader', async () => {
-  });
-
   beforeEach(async () => {
     await loadFixture(fixture);
   });
