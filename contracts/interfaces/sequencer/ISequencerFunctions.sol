@@ -19,7 +19,7 @@ interface ISequencerFunctions {
     function deposit() external returns (uint256 amount);
 
     /// @notice Withdraw tokens into the sequencer's shards.
-    function withdraw(address to, uint256 amount) external returns (uint256 withdrawn);
+    function withdraw(address to, uint256 amount) external;
 
     /// @notice Execute a transaction batch on a shard.
     function execute(

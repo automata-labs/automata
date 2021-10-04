@@ -54,6 +54,11 @@ contract Sequencer is ISequencer, Access {
     }
 
     /// @inheritdoc ISequencerStateDerived
+    function capacity() external view returns (uint256) {
+        return _capacity();
+    }
+
+    /// @inheritdoc ISequencerStateDerived
     function compute(uint256 cursor) external view returns (address) {
         return Clones.predictDeterministicAddress(implementation, keccak256(abi.encodePacked(cursor)), address(this));
     }
@@ -79,66 +84,60 @@ contract Sequencer is ISequencer, Access {
     }
 
     /// @inheritdoc ISequencerFunctions
-    function deposit() external auth returns (uint256 amount) {
-        amount = IERC20(underlying).balanceOf(address(this));
-        require(amount > 0, "0");
-        require(amount <= Cursor.getCapacity(liquidity, decimals, _cardinality()), "OVF");
+    function deposit() external auth returns (uint256 balance) {
+        balance = IERC20(underlying).balanceOf(address(this));
+        require(balance > 0, "0");
+        require(balance <= _capacity(), "OVF");
 
-        liquidity += amount;
+        liquidity += balance;
 
-        uint256 cursor = Cursor.getCursorRoundingUp(liquidity - amount, decimals);
-        uint256 stack = amount;
-        while (stack != 0) {
+        uint256 amount = 0;
+        while (amount != balance) {
+            uint256 pivot = liquidity - balance + amount;
+            uint256 cursor = Cursor.getCursorRoundingUp(pivot, decimals);
+
             address shard = shards[cursor];
             require(shard != address(0), "ADDRZ");
 
-            uint256 complement = Cursor.getCapacityInContext(liquidity - stack, decimals);
-            if (complement != 0) {
-                if (stack > complement) {
-                    underlying.safeTransfer(shard, complement);
-                    stack -= complement;
-                } else {
-                    underlying.safeTransfer(shard, stack);
-                    stack = 0;
-                }
+            uint256 complement = (uint256(10) ** decimals << (cursor + 1)) - (uint256(10) ** decimals) - pivot;
+            if (balance - amount > complement) {
+                underlying.safeTransfer(shard, complement);
+                amount += complement;
+            } else {
+                underlying.safeTransfer(shard, balance - amount);
+                amount = balance;
             }
-
-            cursor += 1;
         }
 
-        emit Sequenced(liquidity);
+        emit Sequenced(msg.sender, liquidity);
     }
 
     /// @inheritdoc ISequencerFunctions
-    function withdraw(address to, uint256 amount) external auth returns (uint256) {
-        require(amount > 0, "0");
-        require(amount <= liquidity, "UVF");
+    function withdraw(address to, uint256 target) external auth {
+        require(target > 0, "0");
+        require(target <= liquidity, "UVF");
 
-        liquidity -= amount;
+        liquidity -= target;
 
-        uint256 cursor = Cursor.getCursor(liquidity + amount, decimals);
-        uint256 stack = amount;
-        while (stack > 0) {
+        uint256 amount = 0;
+        while (amount != target) {
+            uint256 pivot = liquidity + target - amount;
+            uint256 cursor = Cursor.getCursor(pivot, decimals);
+
             address shard = shards[cursor];
             require(shard != address(0), "ADDRZ");
 
-            uint256 balance = Cursor.getLiquidityInShard(liquidity + stack, decimals, cursor);
-            if (balance != 0) {
-                if (stack > balance) {
-                    IShard(shard).transfer(underlying, to, balance);
-                    stack -= balance;
-                } else {
-                    IShard(shard).transfer(underlying, to, stack);
-                    stack = 0;
-                }
+            uint256 excess = pivot - ((uint256(10) ** decimals << cursor) - uint256(10) ** decimals);
+            if (target - amount > excess) {
+                IShard(shard).transfer(underlying, to, excess);
+                amount += excess;
+            } else {
+                IShard(shard).transfer(underlying, to, target - amount);
+                amount = target;
             }
-
-            cursor -= (cursor > 0) ? 1 : 0;
         }
 
-        emit Withdrawn(liquidity);
-
-        return amount;
+        emit Withdrawn(msg.sender, liquidity);
     }
 
     /// @inheritdoc ISequencerFunctions
@@ -152,6 +151,10 @@ contract Sequencer is ISequencer, Access {
 
     function _cardinality() internal view returns (uint256) {
         return shards.length;
+    }
+
+    function _capacity() internal view returns (uint256) {
+        return (uint256(10) ** decimals << _cardinality()) - uint256(10) ** decimals - liquidity;
     }
 
     function _clone() internal returns (uint256 cursor, address cloned) {
