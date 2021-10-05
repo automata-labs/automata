@@ -125,7 +125,7 @@ describe('Accumulator', async () => {
       await accumulator.stake(token.address, wallet.address);
       await expect(accumulator.grow(token.address))
         .to.emit(accumulator, 'Grown')
-        .withArgs(token.address, expandTo18Decimals(100));
+        .withArgs(wallet.address, token.address, expandTo18Decimals(100));
     });
   });
 
