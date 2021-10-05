@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
-
 
 /**
  * @dev Contract module that allows children to implement role-based access
@@ -45,7 +43,9 @@ contract Access {
     mapping (bytes4 => RoleData) private _roles;
 
     bytes4 public constant ROOT = 0x00000000;
-    bytes4 public constant LOCK = 0xFFFFFFFF; // Used to disable further permissioning of a function
+    bytes4 public constant ROOT4146650865 = 0x00000000; // Collision protection for ROOT, test with ROOT12007226833()
+    bytes4 public constant LOCK = 0xFFFFFFFF;           // Used to disable further permissioning of a function
+    bytes4 public constant LOCK8605463013 = 0xFFFFFFFF; // Collision protection for LOCK, test with LOCK10462387368()
 
     /**
      * @dev Emitted when `newAdminRole` is set as ``role``'s admin role
@@ -78,8 +78,8 @@ contract Access {
      * Calling setRoleAdmin(msg.sig, LOCK) means no one can grant that msg.sig role anymore.
      */
     constructor () {
-        _grantRole(ROOT, msg.sender);    // Grant ROOT to msg.sender
-        _setRoleAdmin(LOCK, LOCK);       // Create the LOCK role by setting itself as its own admin, creating an independent role tree
+        _grantRole(ROOT, msg.sender);   // Grant ROOT to msg.sender
+        _setRoleAdmin(LOCK, LOCK);      // Create the LOCK role by setting itself as its own admin, creating an independent role tree
     }
 
     /**

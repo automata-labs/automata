@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../../interfaces/IComputer.sol";
 
+/// @title Linear
 contract Linear is IComputer {
     function compute(uint128 m, uint128 x, uint128 y) external pure returns (uint8, uint256) {
         if (x > y) {
