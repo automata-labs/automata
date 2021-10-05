@@ -565,6 +565,80 @@ export function shouldBehaveLikeLinearRoute() {
   }
 }
 
+export function shouldBehaveLikeRootRoute() {
+  it('(1.5, 0) => (2, 0) | 4', async function () {
+    await this.join(this.wallet, expandTo18Decimals(4));
+    await this.stake(this.wallet, expandTo18Decimals(4));
+    await this.propose(this.wallet, this.governor);
+    await this.use(this.wallet, expandWithDecimals(15, 17), this.pid, 1);
+    await this.timetravel(this.provider, this.pid, 'start');
+
+    await expect(this.operator.route(this.pid, 2)).to.be.revertedWith('F');
+    await this.operator.route(this.pid, 1);
+    await expect(this.operator.route(this.pid, 0)).to.be.revertedWith('F');
+  });
+  it('(1, 0) => (1, 0) | 1', async function () {
+    await this.join(this.wallet, expandTo18Decimals(1));
+    await this.stake(this.wallet, expandTo18Decimals(1));
+    await this.propose(this.wallet, this.governor);
+    await this.use(this.wallet, expandTo18Decimals(1), this.pid, 1);
+    await this.timetravel(this.provider, this.pid, 'start');
+
+    await expect(this.operator.route(this.pid, 2)).to.be.revertedWith('F');
+    await expect(this.operator.route(this.pid, 1)).to.be.revertedWith('F');
+    await this.operator.route(this.pid, 0);
+  });
+  it('(1, 0) => (2, 0) | 4', async function () {
+    await this.join(this.wallet, expandTo18Decimals(4));
+    await this.stake(this.wallet, expandTo18Decimals(4));
+    await this.propose(this.wallet, this.governor);
+    await this.use(this.wallet, expandTo18Decimals(1), this.pid, 1);
+    await this.timetravel(this.provider, this.pid, 'start');
+
+    await expect(this.operator.route(this.pid, 2)).to.be.revertedWith('F');
+    await this.operator.route(this.pid, 1);
+    await expect(this.operator.route(this.pid, 0)).to.be.revertedWith('F');
+  });
+  it('(25, 0) => (50, 0) | 100', async function () {
+    await this.join(this.wallet, expandTo18Decimals(100));
+    await this.stake(this.wallet, expandTo18Decimals(100));
+    await this.propose(this.wallet, this.governor);
+    await this.use(this.wallet, expandTo18Decimals(25), this.pid, 1);
+    await this.timetravel(this.provider, this.pid, 'start');
+
+    await expect(this.operator.route(this.pid, 10)).to.be.revertedWith('F');
+    await expect(this.operator.route(this.pid, 9)).to.be.revertedWith('F');
+    await expect(this.operator.route(this.pid, 8)).to.be.revertedWith('F');
+    await expect(this.operator.route(this.pid, 7)).to.be.revertedWith('F');
+    await expect(this.operator.route(this.pid, 6)).to.be.revertedWith('F');
+    await this.operator.route(this.pid, 5);
+    await this.operator.route(this.pid, 4);
+    await expect(this.operator.route(this.pid, 3)).to.be.revertedWith('F');
+    await expect(this.operator.route(this.pid, 2)).to.be.revertedWith('F');
+    await this.operator.route(this.pid, 1);
+    await expect(this.operator.route(this.pid, 0)).to.be.revertedWith('F');
+  });
+  it('(30, 0) => (55, 0) | 100', async function () {
+    await this.join(this.wallet, expandTo18Decimals(100));
+    await this.stake(this.wallet, expandTo18Decimals(100));
+    await this.propose(this.wallet, this.governor);
+    await this.use(this.wallet, expandTo18Decimals(30), this.pid, 1);
+    await this.timetravel(this.provider, this.pid, 'start');
+
+    await expect(this.operator.route(this.pid, 10)).to.be.revertedWith('F');
+    await expect(this.operator.route(this.pid, 9)).to.be.revertedWith('F');
+    await expect(this.operator.route(this.pid, 8)).to.be.revertedWith('F');
+    await expect(this.operator.route(this.pid, 7)).to.be.revertedWith('F');
+    await expect(this.operator.route(this.pid, 6)).to.be.revertedWith('F');
+    await this.operator.route(this.pid, 5);
+    await this.operator.route(this.pid, 4);
+    await expect(this.operator.route(this.pid, 3)).to.be.revertedWith('F');
+    await this.operator.route(this.pid, 2);
+    await this.operator.route(this.pid, 1);
+    await this.operator.route(this.pid, 0);
+  });
+}
+
 export function shouldBehaveLikeMiscRoute() {
   it('(100, 0) => (100, 0) | 100', async function () {
     await this.join(this.wallet, expandTo18Decimals(100));
