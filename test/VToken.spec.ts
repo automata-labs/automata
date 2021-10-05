@@ -108,6 +108,17 @@ describe('VToken', async () => {
     it('should revert when burning zero', async () => {
       await expect(vToken.burn(wallet.address)).to.be.revertedWith('0');
     });
+    it('should revert when no access to kernel', async () => {
+      await join(wallet, expandTo18Decimals(100), wallet.address, vToken.address);
+      await vToken.mint(wallet.address);
+      expect(await vToken.totalSupply()).to.equal(expandTo18Decimals(100));
+      expect(await vToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(100));
+
+      // revoke role for vToken contract
+      await kernel.revokeRole(ROOT, vToken.address);
+      await vToken.transfer(vToken.address, expandTo18Decimals(100));
+      await expect(vToken.burn(wallet.address)).to.be.revertedWith('Access denied');
+    });
     it('should emit an event', async () => {
       await join(wallet, expandTo18Decimals(100), wallet.address, vToken.address);
       await vToken.mint(wallet.address);

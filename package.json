@@ -3,7 +3,8 @@
   "version": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
   "scripts": {
     "compile": "hardhat compile",
-    "lint": "solhint 'contracts/**/*.sol'"
+    "lint": "solhint 'contracts/**/*.sol'",
+    "fuzz": "echidna-test contracts/test/$npm_config_contract.sol --contract $npm_config_contract --config ./echidna.config.yaml --check-asserts"
   },
   "license": "BUSL-1.1",
   "devDependencies": {

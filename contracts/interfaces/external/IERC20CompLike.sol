@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-interface IERC20CompLike {
+import "@yield-protocol/utils-v2/contracts/token/IERC20.sol";
+
+interface IERC20CompLike is IERC20 {
     /// @notice A record of each accounts delegate
     function delegates(address) external view returns (address);
 

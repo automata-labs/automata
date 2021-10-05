@@ -106,6 +106,17 @@ describe('AToken', async () => {
     it('should revert when burning zero', async () => {
       await expect(aToken.burn(wallet.address)).to.be.revertedWith('0');
     });
+    it('should revert when no access to kernel', async () => {
+      await join(wallet, expandTo18Decimals(100), aToken.address);
+      await aToken.mint(wallet.address);
+      expect(await aToken.totalSupply()).to.equal(expandTo18Decimals(100));
+      expect(await aToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(100));
+
+      // revoke role for aToken contract
+      await kernel.revokeRole(ROOT, aToken.address);
+      await aToken.transfer(aToken.address, expandTo18Decimals(100));
+      await expect(aToken.burn(wallet.address)).to.be.revertedWith('Access denied');
+    });
     it('should emit an event', async () => {
       await join(wallet, expandTo18Decimals(100), aToken.address);
       await aToken.mint(wallet.address);

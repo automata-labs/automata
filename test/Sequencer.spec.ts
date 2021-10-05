@@ -441,8 +441,8 @@ describe('Sequencer', async () => {
       await expect(withdraw(expandTo18Decimals(1).add(1), holder.address)).to.be.reverted;
     });
     it('should revert when no access', async () => {
-      await expect(sequencer.connect(other1).withdraw(wallet.address, expandTo18Decimals(1))).to.be.revertedWith('Access denied');
-      await expect(sequencer.connect(other2).withdraw(wallet.address, expandTo18Decimals(1))).to.be.revertedWith('Access denied');
+      await expect(sequencer.connect(other1).withdraw(wallet.address, 0)).to.be.revertedWith('Access denied');
+      await expect(sequencer.connect(other2).withdraw(wallet.address, 0)).to.be.revertedWith('Access denied');
     });
     it('should emit an event', async () => {
       await clones(5);
