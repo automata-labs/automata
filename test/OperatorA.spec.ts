@@ -1,6 +1,6 @@
 import { ethers, waffle } from 'hardhat';
 
-import { shouldBehaveLikeExit, shouldBehaveLikeJoin, shouldBehaveLikeLinearRoute, shouldBehaveLikeMiscRoute, shouldBehaveLikeUse } from './Operator.behavior';
+import { shouldBehaveLikeExit, shouldBehaveLikeJoin, shouldBehaveLikeLinearRoute, shouldBehaveLikeMiscRoute, shouldBehaveLikeRootRoute, shouldBehaveLikeUse } from './Operator.behavior';
 import { erc20CompLikeFixture, governorAlphaFixture } from './shared/fixtures';
 import {
   deploy,
@@ -126,6 +126,16 @@ describe('OperatorA', async () => {
     await sequencer.clones(3);
   };
 
+  const routeRootFixture = async () => {
+    await routeBaseFixture();
+
+    await operator.set(operator.interface.getSighash('computer'), abi.encode(['address'], [root.address]));
+
+    await token.approve(operator.address, MaxUint256);
+    await token.approve(sequencer.address, MaxUint256);
+    await sequencer.clones(10);
+  };
+
   const routeMiscFixture = async () => {
     await routeBaseFixture();
 
@@ -230,6 +240,30 @@ describe('OperatorA', async () => {
       });
 
       shouldBehaveLikeLinearRoute();
+    });
+
+    describe('root', async () => {
+      beforeEach(async function () {
+        await loadFixture(routeRootFixture);
+
+        this.pid = pid;
+
+        this.provider = provider;
+        this.wallet = wallet;
+        this.token = token;
+        this.governor = governor;
+        this.accumulator = accumulator;
+        this.operator = operator;
+        
+        this.propose = propose;
+        this.join = join;
+        this.collect = collect;
+        this.use = use;
+        this.timetravel = timetravel;
+        this.stake = stake;
+      });
+
+      shouldBehaveLikeRootRoute();
     });
   
     describe('#misc', async () => {
