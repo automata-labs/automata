@@ -11,7 +11,7 @@ describe('Kernel', async () => {
   let abi = new ethers.utils.AbiCoder();
   let wallet;
   let other1;
-  let other2;
+  let norole;
 
   let kernel: Kernel;
 
@@ -20,7 +20,7 @@ describe('Kernel', async () => {
   };
 
   const fixture = async () => {
-    ;([wallet, other1, other2] = await ethers.getSigners());
+    ;([wallet, other1, norole] = await ethers.getSigners());
     kernel = (await deploy('Kernel')) as Kernel;
   };
 
@@ -48,14 +48,14 @@ describe('Kernel', async () => {
       expect((await kernel.read(key)).x).to.equal(0);
       expect((await kernel.read(key)).y).to.equal(0);
     });
+    it('should revert when no access', async () => {
+      const key = ethers.utils.keccak256(abi.encode(['address'], [wallet.address]));
+      await expect(kernel.connect(norole).write(key, 0, 0)).to.be.revertedWith('Access denied');
+    });
     it('should emit an event', async () => {
       const key = ethers.utils.keccak256(abi.encode(['address'], [wallet.address]));
       await expect(kernel.write(key, 1, 3))
         .to.emit(kernel, 'Written').withArgs(wallet.address, key, 1, 3);
-    });
-    it('should revert when no access', async () => {
-      const key = ethers.utils.keccak256(abi.encode(['address'], [wallet.address]));
-      await expect(kernel.write(key, 0, 0));
     });
   });
 
@@ -121,6 +121,9 @@ describe('Kernel', async () => {
     it('(3, 3) + (-4, -4) underflows', async () => {
       await kernel.write(key, 3, 3);
       await expect(kernel.update(key, -4, -4)).to.be.revertedWith('-');
+    });
+    it('should revert when no access', async () => {
+      await expect(kernel.connect(norole).update(key, 0, 0)).to.be.revertedWith('Access denied');
     });
     it('should emit an event', async () => {
       await expect(kernel.update(key, 1, 2))
@@ -218,6 +221,9 @@ describe('Kernel', async () => {
     it('((0, 3), (0, 0)) * (0, 4) underflows', async () => {
       await kernel.write(from, 0, 3);
       await expect(kernel.transfer(from, to, 0, 4)).to.be.revertedWith('-');
+    });
+    it('should revert when no access', async () => {
+      await expect(kernel.connect(norole).transfer(from, to, 0, 4)).to.be.revertedWith('Access denied');
     });
     it('should emit an event', async () => {
       await kernel.write(from, 10, 11);
