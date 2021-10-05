@@ -150,7 +150,7 @@ describe('Sequencer', async () => {
     });
     it('should emit an event', async () => {
       const address = await sequencer.compute(0);
-      await expect(sequencer.clone()).to.emit(sequencer, 'Cloned').withArgs(0, address);
+      await expect(sequencer.clone()).to.emit(sequencer, 'Cloned').withArgs(wallet.address, 0, address);
     });
   });
 

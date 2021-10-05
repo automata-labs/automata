@@ -44,7 +44,8 @@ contract Accumulator is IAccumulator {
 
         uint256 x128a = FullMath.mulDiv(dy, FixedPoint.Q128, globs[underlying].x);
         globs.get(underlying).modify(0, dy.i128(), x128a);
-        emit Grown(underlying, dy);
+
+        emit Grown(msg.sender, underlying, dy);
     }
 
     /// @inheritdoc IAccumulatorFunctions

@@ -174,6 +174,6 @@ contract Sequencer is ISequencer, Access {
         cursors[cloned] = cursor;
         shards.push(cloned);
 
-        emit Cloned(cursor, cloned);
+        emit Cloned(msg.sender, cursor, cloned);
     }
 }
