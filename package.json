@@ -34,7 +34,6 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.3.2",
-    "@uniswap/lib": "^4.0.1-alpha",
     "@uniswap/v3-core": "^1.0.0",
     "@uniswap/v3-periphery": "^1.1.1",
     "@yield-protocol/utils-v2": "^2.4.0-rc2"

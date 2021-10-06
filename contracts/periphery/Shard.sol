@@ -4,14 +4,16 @@ pragma solidity ^0.8.0;
 import "../interfaces/IShard.sol";
 
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
 import "../interfaces/external/IERC20CompLike.sol";
 import "../libraries/access/Access.sol";
+import "../libraries/helpers/TransferHelper.sol";
 import "../libraries/utils/RevertMsgExtractor.sol";
 
 /// @title Shard
 contract Shard is IShard, Access, Initializable {
+    using TransferHelper for address;
+
     /// @inheritdoc IShardFunctions
     function initialize() external initializer {
         _grantRole(Access(address(this)).ROOT(), msg.sender);
@@ -20,7 +22,7 @@ contract Shard is IShard, Access, Initializable {
 
     /// @inheritdoc IShardFunctions
     function transfer(address token, address to, uint256 amount) external auth {
-        TransferHelper.safeTransfer(token, to, amount);
+        token.safeTransfer(to, amount);
     }
 
     /// @inheritdoc IShardFunctions
