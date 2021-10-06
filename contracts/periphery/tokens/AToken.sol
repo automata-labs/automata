@@ -23,8 +23,8 @@ contract AToken is IToken, ERC20Permit {
         address coin_,
         IKernel kernel_
     ) ERC20Permit(
-        string(abi.encodePacked("Automata Voting ", ERC20Permit(address(coin_)).name())),
-        string(abi.encodePacked("v", ERC20Permit(address(coin_)).symbol())),
+        string(abi.encodePacked("Automata ", ERC20Permit(address(coin_)).name())),
+        string(abi.encodePacked("a", ERC20Permit(address(coin_)).symbol())),
         18
     ) {
         coin = coin_;

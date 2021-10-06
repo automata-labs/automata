@@ -13,7 +13,6 @@ describe('VToken', async () => {
   let abi = new ethers.utils.AbiCoder();
   let wallet;
   let other1;
-  let other2;
 
   let token: ERC20CompLike;
 
@@ -27,14 +26,14 @@ describe('VToken', async () => {
   let join: Function;
 
   const fixture = async () => {
-    ;([wallet, other1, other2] = await ethers.getSigners());
+    ;([wallet, other1] = await ethers.getSigners());
 
     token = await erc20CompLikeFixture(provider, wallet);
 
     kernel = (await deploy('Kernel')) as Kernel;
     sequencer = (await deploy('Sequencer', token.address)) as Sequencer;
-    operator = (await deploy('OperatorA', kernel.address, token.address)) as OperatorA;
-    vToken = (await deploy('VToken', kernel.address, token.address, "VToken", "ATOK")) as VToken;
+    operator = (await deploy('OperatorA', token.address, kernel.address)) as OperatorA;
+    vToken = (await deploy('VToken', token.address, kernel.address)) as VToken;
 
     await kernel.grantRole(ROOT, operator.address);
     await kernel.grantRole(ROOT, vToken.address);
@@ -48,11 +47,19 @@ describe('VToken', async () => {
     ({ read, join } = functions({ token, kernel, sequencer, operator }));
   };
 
-  describe('#mint', async () => {
-    beforeEach(async () => {
-      await loadFixture(fixture);
-    });
+  beforeEach(async () => {
+    await loadFixture(fixture);
+  });
 
+  describe('#constructor', async () => {
+    it('should set name and symbol', async () => {
+      expect(await vToken.name()).to.equal('Automata Voting CompLike');
+      expect(await vToken.symbol()).to.equal('vCL');
+      expect(await vToken.decimals()).to.equal(18);
+    });
+  });
+
+  describe('#mint', async () => {
     it('should mint', async () => {
       await join(wallet, expandTo18Decimals(100), wallet.address, vToken.address);
       expect((await read(token.address, vToken.address)).x).to.equal(0);
@@ -81,10 +88,6 @@ describe('VToken', async () => {
   });
 
   describe('#burn', async () => {
-    beforeEach(async () => {
-      await loadFixture(fixture);
-    });
-
     it('should burn', async () => {
       // join & mint
       await join(wallet, expandTo18Decimals(100), wallet.address, vToken.address);

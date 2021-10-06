@@ -13,7 +13,6 @@ describe('AToken', async () => {
   let abi = new ethers.utils.AbiCoder();
   let wallet;
   let other1;
-  let other2;
 
   let token: ERC20CompLike;
   let kernel: Kernel;
@@ -25,14 +24,14 @@ describe('AToken', async () => {
   let join: Function;
 
   const fixture = async () => {
-    ;([wallet, other1, other2] = await ethers.getSigners());
+    ;([wallet, other1] = await ethers.getSigners());
 
     token = await erc20CompLikeFixture(provider, wallet);
 
     kernel = (await deploy('Kernel')) as Kernel;
     sequencer = (await deploy('Sequencer', token.address)) as Sequencer;
-    operator = (await deploy('OperatorA', kernel.address, token.address)) as OperatorA;
-    aToken = (await deploy('AToken', kernel.address, token.address, "AToken", "ATOK")) as AToken;
+    operator = (await deploy('OperatorA', token.address, kernel.address)) as OperatorA;
+    aToken = (await deploy('AToken', token.address, kernel.address)) as AToken;
 
     await kernel.grantRole(ROOT, operator.address);
     await kernel.grantRole(ROOT, aToken.address);
@@ -46,11 +45,19 @@ describe('AToken', async () => {
     ({ read, join } = functions({ token, kernel, sequencer, operator }));
   };
 
-  describe('#mint', async () => {
-    beforeEach(async () => {
-      await loadFixture(fixture);
-    });
+  beforeEach(async () => {
+    await loadFixture(fixture);
+  });
 
+  describe('#constructor', async () => {
+    it('should set name and symbol', async () => {
+      expect(await aToken.name()).to.equal('Automata CompLike');
+      expect(await aToken.symbol()).to.equal('aCL');
+      expect(await aToken.decimals()).to.equal(18);
+    });
+  });
+
+  describe('#mint', async () => {
     it('should mint', async () => {
       await join(wallet, expandTo18Decimals(100), aToken.address);
       expect((await read(token.address, aToken.address)).x).to.equal(expandTo18Decimals(100));
@@ -79,10 +86,6 @@ describe('AToken', async () => {
   });
 
   describe('#burn', async () => {
-    beforeEach(async () => {
-      await loadFixture(fixture);
-    });
-
     it('should burn', async () => {
       // join & mint
       await join(wallet, expandTo18Decimals(100), aToken.address);
