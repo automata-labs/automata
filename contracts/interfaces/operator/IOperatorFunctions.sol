@@ -14,7 +14,7 @@ interface IOperatorFunctions {
     function exit(address to) external;
 
     /// @notice Move internal values from `msg.sender` to an address.
-    /// @dev Can only move values inside of the current key space (i.e. w.r.t. `underlying`).
+    /// @dev Can only move values inside of the current key space (i.e. w.r.t. `coin`).
     function transfer(address to, uint128 x, uint128 y) external;
 
     /// @notice Sum votes before the votes are cast by the protocol.

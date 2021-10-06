@@ -17,21 +17,21 @@ contract AToken is IToken, ERC20Permit {
     /// @inheritdoc IToken
     IKernel public immutable kernel;
     /// @inheritdoc IToken
-    address public immutable underlying;
+    address public immutable coin;
 
     constructor(
         IKernel kernel_,
-        address underlying_,
+        address coin_,
         string memory name,
         string memory symbol
     ) ERC20Permit(name, symbol, 18) {
         kernel = kernel_;
-        underlying = underlying_;
+        coin = coin_;
     }
 
     /// @inheritdoc IToken
     function mint(address to) external returns (uint256 amount) {
-        amount = kernel.get(underlying, address(this)).x - _totalSupply.u128();
+        amount = kernel.get(coin, address(this)).x - _totalSupply.u128();
         require(amount > 0, "0");
         require(_mint(to, amount), "MINT");
     }
@@ -41,6 +41,6 @@ contract AToken is IToken, ERC20Permit {
         amount = _balanceOf[address(this)];
         require(amount > 0, "0");
         require(_burn(address(this), amount), "BURN");
-        kernel.transfer(underlying, address(this), to, amount.u128(), 0);
+        kernel.transfer(coin, address(this), to, amount.u128(), 0);
     }
 }

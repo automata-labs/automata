@@ -9,8 +9,8 @@ import "../../libraries/data/Checkpoint.sol";
 
 /// @title OperatorA
 contract OperatorA is Operator {
-    constructor(address kernel_, address underlying_)
-        Operator(kernel_, underlying_)
+    constructor(address kernel_, address coin_)
+        Operator(kernel_, coin_)
     {}
 
     /// @inheritdoc IOperatorFunctions
@@ -18,7 +18,7 @@ contract OperatorA is Operator {
         uint256 state = IGovernorAlpha(governor).state(pid);
         require(state <= 1, "OBS");
 
-        uint128 amount = IAccumulator(accumulator).grow(underlying);
+        uint128 amount = IAccumulator(accumulator).grow(coin);
         require(amount > 0, "0");
 
         (uint256 start, uint256 end,,) = _timeline(pid);

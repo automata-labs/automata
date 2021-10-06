@@ -7,8 +7,8 @@ interface IToken {
     /// @notice Returns the kernel contract.
     function kernel() external view returns (IKernel);
 
-    /// @notice Returns the underlying token address.
-    function underlying() external view returns (address);
+    /// @notice Returns the coin token address.
+    function coin() external view returns (address);
 
     /// @notice Mint tokens.
     function mint(address to) external returns (uint256 amount);
