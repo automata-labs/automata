@@ -13,7 +13,9 @@ interface IOperatorState {
     function governor() external view returns (address);
 
     /// @notice Returns the period.
-    /// @dev The period decides when `sum` and `vote` can be called.
+    /// @dev The period is used to decide when the `route` function can be called.
+    ///      This effectively makes the `route` period fixed and the `use` period varibale when the
+    ///      underlying governor contract changes the `votingPeriod`.
     function period() external view returns (uint256);
 
     /// @notice Returns the voting strategy implementation.
