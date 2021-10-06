@@ -15,18 +15,20 @@ contract AToken is IToken, ERC20Permit {
     using Shell for IKernel;
 
     /// @inheritdoc IToken
-    IKernel public immutable kernel;
-    /// @inheritdoc IToken
     address public immutable coin;
+    /// @inheritdoc IToken
+    IKernel public immutable kernel;
 
     constructor(
-        IKernel kernel_,
         address coin_,
-        string memory name,
-        string memory symbol
-    ) ERC20Permit(name, symbol, 18) {
-        kernel = kernel_;
+        IKernel kernel_
+    ) ERC20Permit(
+        string(abi.encodePacked("Automata Voting ", ERC20Permit(address(coin_)).name())),
+        string(abi.encodePacked("v", ERC20Permit(address(coin_)).symbol())),
+        18
+    ) {
         coin = coin_;
+        kernel = kernel_;
     }
 
     /// @inheritdoc IToken

@@ -9,8 +9,8 @@ import "../../libraries/data/Checkpoint.sol";
 
 /// @title OperatorB
 contract OperatorB is Operator {
-    constructor(address kernel_, address coin_)
-        Operator(kernel_, coin_)
+    constructor(address coin_, address kernel_)
+        Operator(coin_, kernel_)
     {}
 
     /// @inheritdoc IOperatorFunctions

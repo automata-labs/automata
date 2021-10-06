@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "../../interfaces/IToken.sol";
 
 import "@yield-protocol/utils-v2/contracts/token/ERC20Permit.sol";
+import "@yield-protocol/utils-v2/contracts/token/IERC20Metadata.sol";
 
 import "../../interfaces/IKernel.sol";
 import "../../libraries/helpers/Shell.sol";
@@ -15,18 +16,20 @@ contract VToken is IToken, ERC20Permit {
     using Shell for IKernel;
 
     /// @inheritdoc IToken
-    IKernel public immutable kernel;
-    /// @inheritdoc IToken
     address public immutable coin;
+    /// @inheritdoc IToken
+    IKernel public immutable kernel;
 
     constructor(
-        IKernel kernel_,
         address coin_,
-        string memory name,
-        string memory symbol
-    ) ERC20Permit(name, symbol, 18) {
-        kernel = kernel_;
+        IKernel kernel_
+    ) ERC20Permit(
+        string(abi.encodePacked("Automata Voting ", IERC20Metadata(coin_).name())),
+        string(abi.encodePacked("v", IERC20Metadata(coin_).symbol())),
+        18
+    ) {
         coin = coin_;
+        kernel = kernel_;
     }
 
     /// @inheritdoc IToken

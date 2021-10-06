@@ -25,14 +25,14 @@ abstract contract Operator is IOperator {
     using Shell for IKernel;
 
     /// @inheritdoc IOperatorImmutables
+    address public immutable coin;
+
+    /// @inheritdoc IOperatorImmutables
     address public immutable kernel;
     /// @inheritdoc IOperatorState
     address public accumulator;
     /// @inheritdoc IOperatorState
     address public sequencer;
-
-    /// @inheritdoc IOperatorImmutables
-    address public immutable coin;
 
     /// @inheritdoc IOperatorState
     address public governor;
@@ -51,11 +51,11 @@ abstract contract Operator is IOperator {
     /// @inheritdoc IOperatorState
     mapping(uint256 => Slot.Data) public votes;
 
-    constructor(address kernel_, address coin_) {
+    constructor(address coin_, address kernel_) {
         require(IERC20Metadata(coin_).decimals() == uint8(18), "18");
 
-        kernel = kernel_;
         coin = coin_;
+        kernel = kernel_;
         observe = true;
     }
 

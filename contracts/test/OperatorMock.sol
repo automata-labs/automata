@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 import "../abstracts/Operator.sol";
 
 contract OperatorMock is Operator {
-    constructor(address kernel_, address coin_)
-        Operator(kernel_, coin_)
+    constructor(address coin_, address kernel_)
+        Operator(coin_, kernel_)
     {}
 
     function use(uint256 pid, uint8 support) external override {}
