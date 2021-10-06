@@ -25,14 +25,14 @@ abstract contract Operator is IOperator {
     using Shell for IKernel;
 
     /// @inheritdoc IOperatorImmutables
+    address public immutable coin;
+
+    /// @inheritdoc IOperatorImmutables
     address public immutable kernel;
     /// @inheritdoc IOperatorState
     address public accumulator;
     /// @inheritdoc IOperatorState
     address public sequencer;
-
-    /// @inheritdoc IOperatorImmutables
-    address public immutable underlying;
 
     /// @inheritdoc IOperatorState
     address public governor;
@@ -51,11 +51,11 @@ abstract contract Operator is IOperator {
     /// @inheritdoc IOperatorState
     mapping(uint256 => Slot.Data) public votes;
 
-    constructor(address kernel_, address underlying_) {
-        require(IERC20Metadata(underlying_).decimals() == uint8(18), "18");
+    constructor(address coin_, address kernel_) {
+        require(IERC20Metadata(coin_).decimals() == uint8(18), "18");
 
+        coin = coin_;
         kernel = kernel_;
-        underlying = underlying_;
         observe = true;
     }
 
@@ -81,19 +81,19 @@ abstract contract Operator is IOperator {
         if (observe) _observe();
         uint256 amount = ISequencer(sequencer).deposit();
         require(amount > 0, "0");
-        require(IKernel(kernel).pool(underlying, amount.u128().i128()) <= limit, "LIM");
-        IKernel(kernel).modify(underlying, tox, amount.u128().i128(), 0);
-        IKernel(kernel).modify(underlying, toy, 0, amount.u128().i128());
+        require(IKernel(kernel).pool(coin, amount.u128().i128()) <= limit, "LIM");
+        IKernel(kernel).modify(coin, tox, amount.u128().i128(), 0);
+        IKernel(kernel).modify(coin, toy, 0, amount.u128().i128());
 
         emit Joined(msg.sender, tox, toy, amount.u128());
     }
 
     /// @inheritdoc IOperatorFunctions
     function exit(address to) external {
-        Slot.Data memory slot = IKernel(kernel).get(underlying, address(this));
+        Slot.Data memory slot = IKernel(kernel).get(coin, address(this));
         uint128 amount = Math.min(slot.x, slot.y).u128();
         require(amount > 0, "0");
-        IKernel(kernel).modify(underlying, address(this), -amount.i128(), -amount.i128());
+        IKernel(kernel).modify(coin, address(this), -amount.i128(), -amount.i128());
         ISequencer(sequencer).withdraw(to, amount);
 
         emit Exited(msg.sender, to, amount.u128());
@@ -101,7 +101,7 @@ abstract contract Operator is IOperator {
 
     /// @inheritdoc IOperatorFunctions
     function transfer(address to, uint128 x, uint128 y) external {
-        IKernel(kernel).transfer(underlying, msg.sender, to, x, y);
+        IKernel(kernel).transfer(coin, msg.sender, to, x, y);
 
         emit Transferred(msg.sender, to, x, y);
     }
@@ -123,7 +123,7 @@ abstract contract Operator is IOperator {
 
             for (uint256 i = 0; i < _sequencer.cardinality(); i++) {
                 uint256 priorVotes =
-                    IERC20CompLike(underlying).getPriorVotes(_sequencer.shards(i), blockNumber);
+                    IERC20CompLike(coin).getPriorVotes(_sequencer.shards(i), blockNumber);
                 uint256 capacity = (uint256(10) ** uint256(18) << i);
 
                 if (priorVotes < capacity || i == _sequencer.cardinality() - 1) {

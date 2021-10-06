@@ -14,9 +14,9 @@ library Glob {
 
     function get(
         mapping(address => Glob.Data) storage self,
-        address underlying
+        address coin
     ) internal view returns (Glob.Data storage) {
-        return self[underlying];
+        return self[coin];
     }
 
     function modify(

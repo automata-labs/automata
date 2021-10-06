@@ -21,7 +21,7 @@ contract Sequencer is ISequencer, Access {
     uint256 private constant MAX_CLONES = uint256(2) ** uint256(8);
 
     /// @inheritdoc ISequencerImmutables
-    address public immutable underlying;
+    address public immutable coin;
     /// @inheritdoc ISequencerImmutables
     address public immutable implementation;
 
@@ -33,10 +33,10 @@ contract Sequencer is ISequencer, Access {
     /// @inheritdoc ISequencerState
     uint256 public liquidity;
 
-    constructor(address underlying_) {
-        require(IERC20Metadata(underlying_).decimals() == uint8(18), "18");
+    constructor(address coin_) {
+        require(IERC20Metadata(coin_).decimals() == uint8(18), "18");
 
-        underlying = underlying_;
+        coin = coin_;
         implementation = address(new Shard());
 
         IShard(implementation).initialize();
@@ -84,7 +84,7 @@ contract Sequencer is ISequencer, Access {
 
     /// @inheritdoc ISequencerFunctions
     function deposit() external auth returns (uint256 balance) {
-        balance = IERC20(underlying).balanceOf(address(this));
+        balance = IERC20(coin).balanceOf(address(this));
         require(balance > 0, "0");
         require(balance <= _capacity(), "OVF");
 
@@ -100,10 +100,10 @@ contract Sequencer is ISequencer, Access {
 
             uint256 complement = (uint256(10) ** uint256(18) << (cursor + 1)) - (uint256(10) ** uint256(18)) - pivot;
             if (balance - amount > complement) {
-                underlying.safeTransfer(shard, complement);
+                coin.safeTransfer(shard, complement);
                 amount += complement;
             } else {
-                underlying.safeTransfer(shard, balance - amount);
+                coin.safeTransfer(shard, balance - amount);
                 amount = balance;
             }
         }
@@ -128,10 +128,10 @@ contract Sequencer is ISequencer, Access {
 
             uint256 excess = pivot - ((uint256(10) ** uint256(18) << cursor) - uint256(10) ** uint256(18));
             if (target - amount > excess) {
-                IShard(shard).transfer(underlying, to, excess);
+                IShard(shard).transfer(coin, to, excess);
                 amount += excess;
             } else {
-                IShard(shard).transfer(underlying, to, target - amount);
+                IShard(shard).transfer(coin, to, target - amount);
                 amount = target;
             }
         }
@@ -160,14 +160,14 @@ contract Sequencer is ISequencer, Access {
         cursor = _cardinality();
         cloned = Clones.cloneDeterministic(implementation, keccak256(abi.encodePacked(cursor)));
 
-        // send value 1 of underlying to shard to initialize storage slot, saving gas
+        // send value 1 of coin to shard to initialize storage slot, saving gas
         // shard not initializing with 0 tokens does not affect the logic
-        underlying.safeTransferFrom(msg.sender, cloned, 1);
+        coin.safeTransferFrom(msg.sender, cloned, 1);
 
         // delegate to self after cloning shard.
-        // will fail if `underlying` is not a `CompLike` token.
+        // will fail if `coin` is not a `CompLike` token.
         IShard(cloned).initialize();
-        IShard(cloned).delegate(underlying, cloned);
+        IShard(cloned).delegate(coin, cloned);
 
         // update
         cursors[cloned] = cursor;

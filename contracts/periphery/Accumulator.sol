@@ -33,54 +33,54 @@ contract Accumulator is IAccumulator {
     }
 
     /// @inheritdoc IAccumulatorStateDerived
-    function get(address underlying, address owner) external view returns (Unit.Data memory) {
-        return units.get(underlying, owner).normalize(globs[underlying].x128);
+    function get(address coin, address owner) external view returns (Unit.Data memory) {
+        return units.get(coin, owner).normalize(globs[coin].x128);
     }
 
     /// @inheritdoc IAccumulatorFunctions
-    function grow(address underlying) external returns (uint128 dy) {
-        require(globs[underlying].x > 0, "DIV0");
-        dy = kernel.get(underlying, address(this)).y - globs[underlying].y;
+    function grow(address coin) external returns (uint128 dy) {
+        require(globs[coin].x > 0, "DIV0");
+        dy = kernel.get(coin, address(this)).y - globs[coin].y;
         require(dy > 0, "0");
 
-        uint256 x128a = FullMath.mulDiv(dy, FixedPoint.Q128, globs[underlying].x);
-        globs.get(underlying).modify(0, dy.i128(), x128a);
+        uint256 x128a = FullMath.mulDiv(dy, FixedPoint.Q128, globs[coin].x);
+        globs.get(coin).modify(0, dy.i128(), x128a);
 
-        emit Grown(msg.sender, underlying, dy);
+        emit Grown(msg.sender, coin, dy);
     }
 
     /// @inheritdoc IAccumulatorFunctions
-    function stake(address underlying, address to) external returns (uint128 dx) {
-        dx = kernel.get(underlying, address(this)).x - globs[underlying].x;
+    function stake(address coin, address to) external returns (uint128 dx) {
+        dx = kernel.get(coin, address(this)).x - globs[coin].x;
         require(dx > 0, "0");
 
-        units.get(underlying, to).modify(dx.i128(), 0, globs[underlying].x128);
-        globs.get(underlying)    .modify(dx.i128(), 0, 0);
+        units.get(coin, to).modify(dx.i128(), 0, globs[coin].x128);
+        globs.get(coin)    .modify(dx.i128(), 0, 0);
 
-        emit Staked(msg.sender, underlying, to, dx);
+        emit Staked(msg.sender, coin, to, dx);
     }
 
     /// @inheritdoc IAccumulatorFunctions
-    function unstake(address underlying, address to, uint128 dx) external {
+    function unstake(address coin, address to, uint128 dx) external {
         require(dx > 0, "0");
 
-        units.get(underlying, msg.sender).modify(-dx.i128(), 0, globs[underlying].x128);
-        globs.get(underlying)            .modify(-dx.i128(), 0, 0);
-        kernel.transfer(underlying, address(this), to, dx, 0);
+        units.get(coin, msg.sender).modify(-dx.i128(), 0, globs[coin].x128);
+        globs.get(coin)            .modify(-dx.i128(), 0, 0);
+        kernel.transfer(coin, address(this), to, dx, 0);
 
-        emit Unstaked(msg.sender, underlying, to, dx);
+        emit Unstaked(msg.sender, coin, to, dx);
     }
 
     /// @inheritdoc IAccumulatorFunctions
-    function collect(address underlying, address to, uint128 dy) external returns (uint128 c) {
-        uint128 y = units.get(underlying, to).normalize(globs[underlying].x128).y;
+    function collect(address coin, address to, uint128 dy) external returns (uint128 c) {
+        uint128 y = units.get(coin, to).normalize(globs[coin].x128).y;
         c = (dy > y) ? y : dy;
         require(c > 0, "0");
 
-        units.get(underlying, to).modify(0, -c.i128(), globs[underlying].x128);
-        globs.get(underlying)    .modify(0, -c.i128(), 0);
-        kernel.transfer(underlying, address(this), to, 0, c);
+        units.get(coin, to).modify(0, -c.i128(), globs[coin].x128);
+        globs.get(coin)    .modify(0, -c.i128(), 0);
+        kernel.transfer(coin, address(this), to, 0, c);
 
-        emit Collected(msg.sender, underlying, to, c);
+        emit Collected(msg.sender, coin, to, c);
     }
 }

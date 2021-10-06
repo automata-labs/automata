@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 interface ISequencerImmutables {
-    /// @notice Returns the underlying token.
-    function underlying() external view returns (address);
+    /// @notice Returns the coin token.
+    function coin() external view returns (address);
 
     /// @notice Returns the shard contract implementation.
     function implementation() external view returns (address);

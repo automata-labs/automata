@@ -58,7 +58,7 @@ describe('OperatorA', async () => {
     kernel = (await deploy('Kernel')) as Kernel;
     accumulator = (await deploy('Accumulator', kernel.address)) as Accumulator;
     sequencer = (await deploy('Sequencer', token.address)) as Sequencer;
-    operator = (await deploy('OperatorA', kernel.address, token.address)) as OperatorA;
+    operator = (await deploy('OperatorA', token.address, kernel.address)) as OperatorA;
     linear = (await deploy('Linear')) as Linear;
     root = (await deploy('Root')) as Root;
 

@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 interface IOperatorImmutables {
+    /// @notice Returns the immutable coin token.
+    function coin() external view returns (address);
+
     /// @notice Returns the immutable kernel.
     function kernel() external view returns (address);
-
-    /// @notice Returns the immutable underlying token.
-    function underlying() external view returns (address);
 }

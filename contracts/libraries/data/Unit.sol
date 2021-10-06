@@ -18,10 +18,10 @@ library Unit {
 
     function get(
         mapping(bytes32 => Unit.Data) storage self,
-        address underlying,
+        address coin,
         address owner
     ) internal view returns (Unit.Data storage) {
-        return self[keccak256(abi.encode(underlying, owner))];
+        return self[keccak256(abi.encode(coin, owner))];
     }
 
     function normalize(
