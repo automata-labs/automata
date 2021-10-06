@@ -39,6 +39,7 @@ contract Accumulator is IAccumulator {
 
     /// @inheritdoc IAccumulatorFunctions
     function grow(address underlying) external returns (uint128 dy) {
+        require(globs[underlying].x > 0, "DIV0");
         dy = kernel.get(underlying, address(this)).y - globs[underlying].y;
         require(dy > 0, "0");
 
