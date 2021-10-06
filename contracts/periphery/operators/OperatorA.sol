@@ -46,9 +46,9 @@ contract OperatorA is Operator {
 
         Checkpoint.Data memory checkpoint = _checkpoint(pid, start);
 
-        uint256 max = checkpoint.votes / (uint256(10) ** decimals);
-        uint256 x = votes[pid].x / (uint256(10) ** decimals);
-        uint256 y = votes[pid].y / (uint256(10) ** decimals);
+        uint256 max = checkpoint.votes / (uint256(10) ** uint256(18));
+        uint256 x = votes[pid].x / (uint256(10) ** uint256(18));
+        uint256 y = votes[pid].y / (uint256(10) ** uint256(18));
         (uint8 support_, uint256 amount) = _compute(max, x, y);
         bool support = (support_ == uint8(1)) ? true : false;
 

@@ -7,7 +7,4 @@ interface IOperatorImmutables {
 
     /// @notice Returns the immutable underlying token.
     function underlying() external view returns (address);
-
-    /// @notice Returns the immutable token decimals.
-    function decimals() external view returns (uint256);
 }
