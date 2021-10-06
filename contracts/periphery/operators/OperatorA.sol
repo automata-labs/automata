@@ -84,6 +84,6 @@ contract OperatorA is Operator {
 
     function _timeline(uint256 pid) internal view override returns (uint256, uint256, uint256, uint256) {
         (,,, uint256 start, uint256 end,,,,) = IGovernorAlpha(governor).proposals(pid);
-        return (start, start + period - 1, start + period, end);
+        return (start, end - period - 1, end - period, end);
     }
 }
