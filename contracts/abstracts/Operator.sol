@@ -74,6 +74,8 @@ abstract contract Operator is IOperator {
         else if (selector == IOperatorState.observe.selector) observe = abi.decode(data, (bool));
         else if (selector == IOperatorState.limit.selector) limit = abi.decode(data, (uint256));
         else revert("!");
+
+        emit Set(msg.sender, selector, data);
     }
 
     /// @inheritdoc IOperatorFunctions

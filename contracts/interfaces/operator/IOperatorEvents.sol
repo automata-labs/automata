@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 interface IOperatorEvents {
-    /// @notice Emitted when the sequencer is set.
-    event Set(address indexed sender, address sequencer);
+    /// @notice Emitted when a variable is set.
+    event Set(address indexed sender, bytes4 indexed selector, bytes data);
 
     /// @notice Emitted when `join` is called.
     event Joined(address indexed sender, address indexed tox, address indexed toy, uint128 amount);
