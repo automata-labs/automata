@@ -125,11 +125,11 @@ describe('Sequencer', async () => {
     });
     it('should revert when token is not approved', async () => {
       await token.approve(sequencer.address, 0);
-      await expect(sequencer.clone()).to.be.revertedWith('TransferHelper::transferFrom: transferFrom failed');
+      await expect(sequencer.clone()).to.be.revertedWith('STF');
     });
     it('should revert when token is approved but transfer fails', async () => {
       await token.connect(other1).approve(sequencer.address, MaxUint256);
-      await expect(sequencer.connect(other1).clone()).to.be.revertedWith('TransferHelper::transferFrom: transferFrom failed');
+      await expect(sequencer.connect(other1).clone()).to.be.revertedWith('STF');
     });
     it('should revert when external calling `initialize` on shard after cloning', async () => {
       await sequencer.clone();
@@ -205,12 +205,12 @@ describe('Sequencer', async () => {
       await sequencer.clones(10);
       await token.approve(sequencer.address, 0);
       await expect(sequencer.clones(1))
-        .to.be.revertedWith('TransferHelper::transferFrom: transferFrom failed');
+        .to.be.revertedWith('STF');
     });
     it('should revert when token is approved but transfer fails', async () => {
       await token.connect(other1).approve(sequencer.address, MaxUint256);
       await expect(sequencer.connect(other1).clones(1))
-        .to.be.revertedWith('TransferHelper::transferFrom: transferFrom failed');
+        .to.be.revertedWith('STF');
     });
   });
 
