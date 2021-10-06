@@ -33,8 +33,6 @@ abstract contract Operator is IOperator {
 
     /// @inheritdoc IOperatorImmutables
     address public immutable underlying;
-    /// @inheritdoc IOperatorImmutables
-    uint256 public immutable decimals;
 
     /// @inheritdoc IOperatorState
     address public governor;
@@ -54,9 +52,10 @@ abstract contract Operator is IOperator {
     mapping(uint256 => Slot.Data) public votes;
 
     constructor(address kernel_, address underlying_) {
+        require(IERC20Metadata(underlying_).decimals() == uint8(18), "18");
+
         kernel = kernel_;
         underlying = underlying_;
-        decimals = IERC20Metadata(underlying_).decimals();
         observe = true;
     }
 
@@ -125,7 +124,7 @@ abstract contract Operator is IOperator {
             for (uint256 i = 0; i < _sequencer.cardinality(); i++) {
                 uint256 priorVotes =
                     IERC20CompLike(underlying).getPriorVotes(_sequencer.shards(i), blockNumber);
-                uint256 capacity = (uint256(10) ** decimals << i);
+                uint256 capacity = (uint256(10) ** uint256(18) << i);
 
                 if (priorVotes < capacity || i == _sequencer.cardinality() - 1) {
                     checkpointedVotes += priorVotes;
@@ -136,7 +135,7 @@ abstract contract Operator is IOperator {
             }
 
             checkpoints[pid].votes = checkpointedVotes;
-            checkpoints[pid].cursor = Cursor.getCursorRoundingUp(checkpointedVotes, decimals);
+            checkpoints[pid].cursor = Cursor.getCursorRoundingUp(checkpointedVotes);
         }
 
         return checkpoints[pid];

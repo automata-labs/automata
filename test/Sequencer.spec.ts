@@ -53,7 +53,7 @@ describe('Sequencer', async () => {
     let gross = BigNumber.from(0);
     for (let i = 0; i < (await sequencer.cardinality()).toNumber(); i++) {
       const balance = await token.balanceOf(await sequencer.shards(i));
-      const crsr = (await cursor.getCursor(liquidity, 18)).toNumber();
+      const crsr = (await cursor.getCursor(liquidity)).toNumber();
 
       if (crsr > i) {
         const expected = expandTo18Decimals(2 ** i).add(1);

@@ -23,8 +23,6 @@ contract Sequencer is ISequencer, Access {
     /// @inheritdoc ISequencerImmutables
     address public immutable underlying;
     /// @inheritdoc ISequencerImmutables
-    uint256 public immutable decimals;
-    /// @inheritdoc ISequencerImmutables
     address public immutable implementation;
 
     /// @inheritdoc ISequencerState
@@ -36,8 +34,9 @@ contract Sequencer is ISequencer, Access {
     uint256 public liquidity;
 
     constructor(address underlying_) {
+        require(IERC20Metadata(underlying_).decimals() == uint8(18), "18");
+
         underlying = underlying_;
-        decimals = IERC20Metadata(underlying_).decimals();
         implementation = address(new Shard());
 
         IShard(implementation).initialize();
@@ -94,12 +93,12 @@ contract Sequencer is ISequencer, Access {
         uint256 amount = 0;
         while (amount != balance) {
             uint256 pivot = liquidity - balance + amount;
-            uint256 cursor = Cursor.getCursorRoundingUp(pivot, decimals);
+            uint256 cursor = Cursor.getCursorRoundingUp(pivot);
 
             address shard = shards[cursor];
             require(shard != address(0), "ADDRZ");
 
-            uint256 complement = (uint256(10) ** decimals << (cursor + 1)) - (uint256(10) ** decimals) - pivot;
+            uint256 complement = (uint256(10) ** uint256(18) << (cursor + 1)) - (uint256(10) ** uint256(18)) - pivot;
             if (balance - amount > complement) {
                 underlying.safeTransfer(shard, complement);
                 amount += complement;
@@ -122,12 +121,12 @@ contract Sequencer is ISequencer, Access {
         uint256 amount = 0;
         while (amount != target) {
             uint256 pivot = liquidity + target - amount;
-            uint256 cursor = Cursor.getCursor(pivot, decimals);
+            uint256 cursor = Cursor.getCursor(pivot);
 
             address shard = shards[cursor];
             require(shard != address(0), "ADDRZ");
 
-            uint256 excess = pivot - ((uint256(10) ** decimals << cursor) - uint256(10) ** decimals);
+            uint256 excess = pivot - ((uint256(10) ** uint256(18) << cursor) - uint256(10) ** uint256(18));
             if (target - amount > excess) {
                 IShard(shard).transfer(underlying, to, excess);
                 amount += excess;
@@ -154,7 +153,7 @@ contract Sequencer is ISequencer, Access {
     }
 
     function _capacity() internal view returns (uint256) {
-        return (uint256(10) ** decimals << _cardinality()) - uint256(10) ** decimals - liquidity;
+        return (uint256(10) ** uint256(18) << _cardinality()) - uint256(10) ** uint256(18) - liquidity;
     }
 
     function _clone() internal returns (uint256 cursor, address cloned) {
