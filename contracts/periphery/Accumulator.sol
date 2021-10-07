@@ -62,6 +62,9 @@ contract Accumulator is IAccumulator, ERC721Permit {
             x128: pools[coin].x128
         });
         pools[coin].modify(dx.i128(), 0, 0);
+
+        emit Picked(id, coin);
+        emit Staked(id, dx);
     }
 
     /// @inheritdoc IAccumulatorFunctions
@@ -69,6 +72,8 @@ contract Accumulator is IAccumulator, ERC721Permit {
         require(stakes[id].x == 0 && stakes[id].y == 0, "!0");
         delete stakes[id];
         _burn(id);
+
+        emit Picked(id, address(0));
     }
 
     /// @inheritdoc IAccumulatorFunctions
@@ -81,6 +86,8 @@ contract Accumulator is IAccumulator, ERC721Permit {
 
         stakes[id].modify(dx.i128(), 0, pools[coin].x128);
         pools[coin].modify(dx.i128(), 0, 0);
+
+        emit Staked(id, dx);
     }
 
     /// @inheritdoc IAccumulatorFunctions
@@ -91,6 +98,8 @@ contract Accumulator is IAccumulator, ERC721Permit {
         stakes[id].modify(-dx.i128(), 0, pools[coin].x128);
         pools[coin].modify(-dx.i128(), 0, 0);
         kernel.transfer(coin, address(this), to, dx, 0);
+
+        emit Unstaked(id, to, dx);
     }
 
     /// @inheritdoc IAccumulatorFunctions
@@ -103,6 +112,8 @@ contract Accumulator is IAccumulator, ERC721Permit {
         stakes[id].modify(0, -c.i128(), pools[coin].x128);
         pools[coin].modify(0, -c.i128(), 0);
         kernel.transfer(coin, address(this), to, 0, c);
+
+        emit Collected(id, to, dy);
     }
 
     /// @inheritdoc IAccumulatorFunctions
@@ -110,6 +121,8 @@ contract Accumulator is IAccumulator, ERC721Permit {
         require(stakes[id].x == 0, "!0");
         require(stakes[id].y == 0, "!0");
         stakes[id].coin = coin;
+
+        emit Picked(id, coin);
     }
 
     /// @inheritdoc IAccumulatorFunctions
@@ -118,6 +131,8 @@ contract Accumulator is IAccumulator, ERC721Permit {
         dy = kernel.get(coin, address(this)).y - pools[coin].y;
         require(dy > 0, "0");
         pools[coin].modify(0, dy.i128(), FullMath.mulDiv(dy, FixedPoint.Q128, pools[coin].x));
+
+        emit Grown(coin, dy);
     }
 
     function _getAndIncrementNonce(uint256 id) internal override returns (uint256) {

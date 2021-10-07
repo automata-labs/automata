@@ -6,7 +6,7 @@ interface IAccumulatorEvents {
     event Staked(uint256 indexed id, uint128 dx);
 
     /// @notice Emitted when `unstake` is called.
-    event Unstaked(uint256 indexed id, uint128 dx);
+    event Unstaked(uint256 indexed id, address to, uint128 dx);
 
     /// @notice Emitted when `collect` is called.
     event Collected(uint256 indexed id, address to, uint128 dy);

@@ -196,14 +196,14 @@ describe('Accumulator', async () => {
       await accumulator.mint(token.address, wallet.address);
       await expect(accumulator.stake(id)).to.be.revertedWith('0');
     });
-    // it('should emit an event', async () => {
-    //   const id = await accumulator.next();
-    //   await accumulator.mint(token.address, wallet.address);
-    //   await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
-    //   await expect(accumulator.stake(id))
-    //     .to.emit(accumulator, 'Staked')
-    //     .withArgs(wallet.address, token.address, wallet.address, expandTo18Decimals(100));
-    // });
+    it('should emit an event', async () => {
+      const id = await accumulator.next();
+      await accumulator.mint(token.address, wallet.address);
+      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+
+      await expect(accumulator.stake(id)).to.emit(accumulator, 'Staked')
+        .withArgs(id, expandTo18Decimals(100));
+    });
   });
 
   describe('#unstake', async () => {
@@ -291,13 +291,14 @@ describe('Accumulator', async () => {
       // reverts
       await expect(accumulator.unstake(id, wallet.address, 2)).to.be.revertedWith('0x11');
     });
-    // it('should emit an event', async () => {
-    //   await join(wallet, expandTo18Decimals(100), accumulator.address, wallet.address);
-    //   await accumulator.stake(token.address, wallet.address);
-    //   await expect(accumulator.unstake(token.address, wallet.address, expandTo18Decimals(100)))
-    //     .to.emit(accumulator, 'Unstaked')
-    //     .withArgs(wallet.address, token.address, wallet.address, expandTo18Decimals(100));
-    // });
+    it('should emit an event', async () => {
+      const id = await accumulator.next();
+      await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
+      await accumulator.mint(token.address, wallet.address);
+
+      await expect(accumulator.unstake(id, wallet.address, 1)).to.emit(accumulator, 'Unstaked')
+        .withArgs(id, wallet.address, 1);
+    });
   });
 
   describe('#collect', async () => {
@@ -355,14 +356,15 @@ describe('Accumulator', async () => {
       await expect(accumulator.collect(id, wallet.address, 1)).to.be.revertedWith('0');
       await expect(accumulator.collect(id, wallet.address, MaxUint128)).to.be.revertedWith('0');
     });
-    // it('should emit an event', async () => {
-    //   await join(wallet, expandTo18Decimals(100), accumulator.address, accumulator.address);
-    //   await accumulator.stake(token.address, wallet.address);
-    //   await accumulator.grow(token.address);
-    //   await expect(accumulator.collect(token.address, wallet.address, expandTo18Decimals(100)))
-    //     .to.emit(accumulator, 'Collected')
-    //     .withArgs(wallet.address, token.address, wallet.address, expandTo18Decimals(100));
-    // });
+    it('should emit an event', async () => {
+      const id = await accumulator.next();
+      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await accumulator.mint(token.address, wallet.address);
+      await accumulator.grow(token.address);
+
+      await expect(accumulator.collect(id, wallet.address, 1)).to.emit(accumulator, 'Collected')
+        .withArgs(id, wallet.address, 1);
+    });
   });
 
   describe('#grow', async () => {
