@@ -18,8 +18,8 @@ interface IAccumulatorFunctions {
     /// @notice Collect `y` from the accumulator.
     function collect(uint256 id, address to, uint128 dy) external returns (uint128 c);
 
-    /// @notice Renew an ERC721 token's `coin` value.
-    function renew(uint256 id, address coin) external;
+    /// @notice Update a stake's `coin` address.
+    function pick(uint256 id, address coin) external;
 
     /// @notice Grows the accumulator's `x128` value.
     /// @dev The function can be called by any account, but is expected to be called by the emulator contract.

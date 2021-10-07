@@ -33,14 +33,17 @@ export function functions({ token, kernel, operator, sequencer, accumulator }: F
   };
 
   // Operator
-  const join = async (caller, amount, tox?, toy?) => {
+  const join = async (caller, tox, toy, amount) => {
     await token.connect(caller).transfer(sequencer.address, amount);
-    await operator.join(tox || caller.address, toy || caller.address);
+    await operator.connect(caller).join(tox || caller.address, toy || caller.address);
   };
 
-  const exit = async (caller, amount, to?) => {
-    await operator.connect(caller).transfer(operator.address, amount, amount);
-    await operator.exit(to || caller.address);
+  const exit = async (caller, to) => {
+    await operator.connect(caller).exit(to || caller.address);
+  };
+
+  const transfer = async (caller, to, x, y) => {
+    await operator.connect(caller).transfer(to, x, y);
   };
 
   const use = async (caller, amount, pid, support) => {
@@ -65,23 +68,5 @@ export function functions({ token, kernel, operator, sequencer, accumulator }: F
     await evmMiner(provider, start - current + 1);
   };
 
-  // Accumulator
-  const stake = async (caller, amount) => {
-    // await operator.connect(caller).transfer(accumulator.address, amount, 0);
-    // await accumulator.stake(token.address, caller.address);
-  };
-
-  const globs = async (coin: string) => {
-    return accumulator.pools(coin);
-  };
-
-  const units = async (id: BigNumberish) => {
-    return accumulator.stakes(id);
-  };
-
-  const normalized = async (underlying: string, owner: string) => {
-    // return accumulator.get(underlying, owner);
-  };
-
-  return { propose, read, join, exit, use, collect, timetravel, stake, globs, units, normalized };
+  return { propose, read, join, exit, transfer, use, collect, timetravel };
 }

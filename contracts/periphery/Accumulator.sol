@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-// import "../interfaces/IAccumulator.sol";
+import "../interfaces/IAccumulator.sol";
 
 import "../abstracts/ERC721Permit.sol";
 import "../interfaces/IKernel.sol";
@@ -13,15 +13,17 @@ import "../libraries/math/FixedPoint.sol";
 import "../libraries/math/FullMath.sol";
 
 /// @title Accumulator
-// contract Accumulator is IAccumulator, ERC721Permit {
-contract Accumulator is ERC721Permit {
-    using Pool for Pool.Data;
+contract Accumulator is IAccumulator, ERC721Permit {
     using Cast for uint128;
+    using Pool for Pool.Data;
     using Shell for IKernel;
     using Stake for Stake.Data;
 
+    /// @inheritdoc IAccumulatorImmutables
     IKernel public immutable kernel;
+    /// @inheritdoc IAccumulatorState
     mapping(address => Pool.Data) public pools;
+    /// @inheritdoc IAccumulatorState
     mapping(uint256 => Stake.Data) public stakes;
 
     /// @dev The ID of the next token that will be minted. Skips 0
@@ -36,14 +38,17 @@ contract Accumulator is ERC721Permit {
         kernel = kernel_;
     }
 
+    /// @inheritdoc IAccumulatorStateDerived
     function next() external view returns (uint256) {
         return _id;
     }
 
+    /// @inheritdoc IAccumulatorStateDerived
     function get(uint256 id) external view returns (Stake.Data memory) {
         return stakes[id].normalize(pools[stakes[id].coin].x128);
     }
 
+    /// @inheritdoc IAccumulatorFunctions
     function mint(address coin, address to) external returns (uint256 id, uint128 dx) {
         id = _id++;
         dx = kernel.get(coin, address(this)).x - pools[coin].x;
@@ -59,14 +64,18 @@ contract Accumulator is ERC721Permit {
         pools[coin].modify(dx.i128(), 0, 0);
     }
 
+    /// @inheritdoc IAccumulatorFunctions
     function burn(uint256 id) external isAuthorizedForToken(id) {
-        require(stakes[id].x == 0, "!0");
-        require(stakes[id].y == 0, "!0");
+        require(stakes[id].x == 0 && stakes[id].y == 0, "!0");
+        delete stakes[id];
         _burn(id);
     }
 
+    /// @inheritdoc IAccumulatorFunctions
     function stake(uint256 id) external returns (uint128 dx) {
         address coin = stakes[id].coin;
+        require(coin != address(0), "A0");
+
         dx = kernel.get(coin, address(this)).x - pools[coin].x;
         require(dx > 0, "0");
 
@@ -74,6 +83,7 @@ contract Accumulator is ERC721Permit {
         pools[coin].modify(dx.i128(), 0, 0);
     }
 
+    /// @inheritdoc IAccumulatorFunctions
     function unstake(uint256 id, address to, uint128 dx) external isAuthorizedForToken(id) {
         require(dx > 0, "0");
 
@@ -83,14 +93,11 @@ contract Accumulator is ERC721Permit {
         kernel.transfer(coin, address(this), to, dx, 0);
     }
 
-    function collect(uint256 id, address to, uint128 dy)
-        external
-        isAuthorizedForToken(id)
-        returns (uint128 c)
-    {
+    /// @inheritdoc IAccumulatorFunctions
+    function collect(uint256 id, address to, uint128 dy) external isAuthorizedForToken(id) returns (uint128 c) {
         address coin = stakes[id].coin;
-        uint128 y = stakes[id].normalize(pools[coin].x128).y;
-        c = (dy > y) ? y : dy;
+        uint128 ddy = stakes[id].normalize(pools[coin].x128).y;
+        c = (dy > ddy) ? ddy : dy;
         require(c > 0, "0");
 
         stakes[id].modify(0, -c.i128(), pools[coin].x128);
@@ -98,12 +105,14 @@ contract Accumulator is ERC721Permit {
         kernel.transfer(coin, address(this), to, 0, c);
     }
 
-    function renew(uint256 id, address coin) external isAuthorizedForToken(id) {
+    /// @inheritdoc IAccumulatorFunctions
+    function pick(uint256 id, address coin) external isAuthorizedForToken(id) {
         require(stakes[id].x == 0, "!0");
         require(stakes[id].y == 0, "!0");
         stakes[id].coin = coin;
     }
 
+    /// @inheritdoc IAccumulatorFunctions
     function grow(address coin) external returns (uint128 dy) {
         require(pools[coin].x > 0, "DIV0");
         dy = kernel.get(coin, address(this)).y - pools[coin].y;

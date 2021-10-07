@@ -59,7 +59,7 @@ describe('AToken', async () => {
 
   describe('#mint', async () => {
     it('should mint', async () => {
-      await join(wallet, expandTo18Decimals(100), aToken.address);
+      await join(wallet, aToken.address, null, expandTo18Decimals(100));
       expect((await read(token.address, aToken.address)).x).to.equal(expandTo18Decimals(100));
       expect((await read(token.address, aToken.address)).y).to.equal(0);
       expect((await read(token.address, wallet.address)).x).to.equal(0);
@@ -78,7 +78,7 @@ describe('AToken', async () => {
       await expect(aToken.mint(wallet.address)).to.be.revertedWith('0');
     });
     it('should emit an event', async () => {
-      await join(wallet, expandTo18Decimals(100), aToken.address);
+      await join(wallet, aToken.address, null, expandTo18Decimals(100));
       await expect(aToken.mint(wallet.address))
         .to.emit(aToken, 'Transfer')
         .withArgs(ethers.constants.AddressZero, wallet.address, expandTo18Decimals(100));
@@ -88,7 +88,7 @@ describe('AToken', async () => {
   describe('#burn', async () => {
     it('should burn', async () => {
       // join & mint
-      await join(wallet, expandTo18Decimals(100), aToken.address);
+      await join(wallet, aToken.address, null, expandTo18Decimals(100));
       await aToken.mint(wallet.address);
       expect(await aToken.totalSupply()).to.equal(expandTo18Decimals(100));
       expect(await aToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(100));
@@ -110,7 +110,7 @@ describe('AToken', async () => {
       await expect(aToken.burn(wallet.address)).to.be.revertedWith('0');
     });
     it('should revert when no access to kernel', async () => {
-      await join(wallet, expandTo18Decimals(100), aToken.address);
+      await join(wallet, aToken.address, null, expandTo18Decimals(100));
       await aToken.mint(wallet.address);
       expect(await aToken.totalSupply()).to.equal(expandTo18Decimals(100));
       expect(await aToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(100));
@@ -121,7 +121,7 @@ describe('AToken', async () => {
       await expect(aToken.burn(wallet.address)).to.be.revertedWith('Access denied');
     });
     it('should emit an event', async () => {
-      await join(wallet, expandTo18Decimals(100), aToken.address);
+      await join(wallet, aToken.address, null, expandTo18Decimals(100));
       await aToken.mint(wallet.address);
       await aToken.transfer(aToken.address, expandTo18Decimals(100));
       await expect(aToken.burn(wallet.address))
