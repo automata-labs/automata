@@ -1,3 +1,4 @@
+import { BigNumberish } from '@ethersproject/bignumber';
 import { ethers } from 'hardhat';
 import { Accumulator, ERC20CompLike, Kernel, OperatorA, OperatorB, OperatorMock, Sequencer } from '../../typechain';
 
@@ -66,20 +67,20 @@ export function functions({ token, kernel, operator, sequencer, accumulator }: F
 
   // Accumulator
   const stake = async (caller, amount) => {
-    await operator.connect(caller).transfer(accumulator.address, amount, 0);
-    await accumulator.stake(token.address, caller.address);
+    // await operator.connect(caller).transfer(accumulator.address, amount, 0);
+    // await accumulator.stake(token.address, caller.address);
   };
 
-  const globs = async (underlying: string) => {
-    return accumulator.globs(underlying);
+  const globs = async (coin: string) => {
+    return accumulator.pools(coin);
   };
 
-  const units = async (underlying: string, owner: string) => {
-    return accumulator.units(ethers.utils.keccak256(abi.encode(['address', 'address'], [underlying, owner])));
+  const units = async (id: BigNumberish) => {
+    return accumulator.stakes(id);
   };
 
   const normalized = async (underlying: string, owner: string) => {
-    return accumulator.get(underlying, owner);
+    // return accumulator.get(underlying, owner);
   };
 
   return { propose, read, join, exit, use, collect, timetravel, stake, globs, units, normalized };

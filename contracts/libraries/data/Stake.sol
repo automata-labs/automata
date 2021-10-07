@@ -6,41 +6,34 @@ import "../math/Delta.sol";
 import "../math/FixedPoint.sol";
 import "../math/FullMath.sol";
 
-library Unit {
+library Stake {
     using Cast for uint256;
     using Delta for uint128;
 
     struct Data {
+        uint96 nonce;
+        address coin;
         uint128 x;
         uint128 y;
         uint256 x128;
     }
 
-    function get(
-        mapping(bytes32 => Unit.Data) storage self,
-        address coin,
-        address owner
-    ) internal view returns (Unit.Data storage) {
-        return self[keccak256(abi.encode(coin, owner))];
-    }
-
     function normalize(
-        Unit.Data memory self,
+        Stake.Data memory self,
         uint256 x128
-    ) internal pure returns (Unit.Data memory) {
-        self.y += FullMath.mulDiv(self.x, x128 - self.x128, FixedPoint.Q128).u128();
-        self.x128 = x128;
-
-        return self;
+    ) internal pure returns (Stake.Data memory _self) {
+        _self = self;
+        _self.y += FullMath.mulDiv(self.x, x128 - self.x128, FixedPoint.Q128).u128();
+        _self.x128 = x128;
     }
 
     function modify(
-        Unit.Data storage self,
+        Stake.Data storage self,
         int128 dx,
         int128 dy,
         uint256 x128
     ) internal {
-        Unit.Data memory cache = self;
+        Stake.Data memory cache = self;
 
         cache.x = cache.x.addDelta(dx);
         cache.y += FullMath.mulDiv(self.x, x128 - self.x128, FixedPoint.Q128).u128();
