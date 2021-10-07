@@ -44,6 +44,7 @@ describe('OperatorB', async () => {
   let read;
   let join;
   let exit;
+  let transfer;
   let collect;
   let use;
   let timetravel;
@@ -62,7 +63,7 @@ describe('OperatorB', async () => {
     linear = (await deploy('Linear')) as Linear;
     root = (await deploy('Root')) as Root;
 
-    ({ propose, read, join, exit, collect, use, timetravel, stake } = functions({ token, kernel, accumulator, sequencer, operator }));
+    ({ propose, read, join, exit, transfer, collect, use, timetravel } = functions({ token, kernel, accumulator, sequencer, operator }));
   };
 
   const joinFixture = async () => {
@@ -163,7 +164,6 @@ describe('OperatorB', async () => {
       this.read = read;
       this.join = join;
       this.timetravel = timetravel;
-      this.stake = stake;
     });
 
     shouldBehaveLikeJoin();
@@ -188,6 +188,7 @@ describe('OperatorB', async () => {
       this.read = read;
       this.join = join;
       this.exit = exit;
+      this.transfer = transfer;
       this.timetravel = timetravel;
       this.stake = stake;
     });
@@ -274,7 +275,9 @@ describe('OperatorB', async () => {
 
         this.provider = provider;
         this.wallet = wallet;
+        this.token = token;
         this.governor = governor;
+        this.accumulator = accumulator;
         this.operator = operator;
         
         this.propose = propose;

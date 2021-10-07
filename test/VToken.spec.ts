@@ -61,7 +61,7 @@ describe('VToken', async () => {
 
   describe('#mint', async () => {
     it('should mint', async () => {
-      await join(wallet, expandTo18Decimals(100), wallet.address, vToken.address);
+      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
       expect((await read(token.address, vToken.address)).x).to.equal(0);
       expect((await read(token.address, vToken.address)).y).to.equal(expandTo18Decimals(100));
       expect((await read(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
@@ -80,7 +80,7 @@ describe('VToken', async () => {
       await expect(vToken.mint(wallet.address)).to.be.revertedWith('0');
     });
     it('should emit an event', async () => {
-      await join(wallet, expandTo18Decimals(100), wallet.address, vToken.address);
+      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
       await expect(vToken.mint(wallet.address))
         .to.emit(vToken, 'Transfer')
         .withArgs(ethers.constants.AddressZero, wallet.address, expandTo18Decimals(100));
@@ -90,7 +90,7 @@ describe('VToken', async () => {
   describe('#burn', async () => {
     it('should burn', async () => {
       // join & mint
-      await join(wallet, expandTo18Decimals(100), wallet.address, vToken.address);
+      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
       await vToken.mint(wallet.address);
       expect(await vToken.totalSupply()).to.equal(expandTo18Decimals(100));
       expect(await vToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(100));
@@ -112,7 +112,7 @@ describe('VToken', async () => {
       await expect(vToken.burn(wallet.address)).to.be.revertedWith('0');
     });
     it('should revert when no access to kernel', async () => {
-      await join(wallet, expandTo18Decimals(100), wallet.address, vToken.address);
+      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
       await vToken.mint(wallet.address);
       expect(await vToken.totalSupply()).to.equal(expandTo18Decimals(100));
       expect(await vToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(100));
@@ -123,7 +123,7 @@ describe('VToken', async () => {
       await expect(vToken.burn(wallet.address)).to.be.revertedWith('Access denied');
     });
     it('should emit an event', async () => {
-      await join(wallet, expandTo18Decimals(100), wallet.address, vToken.address);
+      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
       await vToken.mint(wallet.address);
       await vToken.transfer(vToken.address, expandTo18Decimals(100));
       await expect(vToken.burn(wallet.address))
