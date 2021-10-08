@@ -14,17 +14,14 @@ contract OperatorA is Operator {
     {}
 
     /// @inheritdoc IOperatorFunctions
-    function use(uint256 pid, uint8 support) external override {
-        uint256 state = IGovernorAlpha(governor).state(pid);
-        require(state <= 1, "OBS");
-
-        uint128 amount = IAccumulator(accumulator).grow(coin);
-        require(amount > 0, "0");
-
+    function use(uint256 pid, uint8 support) external override returns (uint128 amount) {
         (uint256 start, uint256 end,,) = _timeline(pid);
         require(start > 0, "T0");
         require(block.number >= start, "BEG");
         require(block.number <= end, "END");
+
+        amount = IAccumulator(accumulator).grow(coin);
+        require(amount > 0, "0");
 
         if (support == uint8(1)) {
             votes[pid].x += amount;

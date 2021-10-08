@@ -8,7 +8,7 @@ contract OperatorMock is Operator {
         Operator(coin_, kernel_)
     {}
 
-    function use(uint256 pid, uint8 support) external override {}
+    function use(uint256 pid, uint8 support) external override returns (uint128 amount) {}
 
     function route(uint256 pid, uint256 cursor) external override {}
 

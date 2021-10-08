@@ -261,7 +261,7 @@ export function shouldBehaveLikeUse() {
     await this.timetravel(this.provider, this.pid, 'end');
 
     await this.operator.transfer(this.accumulator.address, 0, expandTo18Decimals(100));
-    await expect(this.operator.use(this.pid, 1)).to.be.revertedWith('OBS');
+    await expect(this.operator.use(this.pid, 1)).to.be.revertedWith('END');
   });
   it('should revert when using zero', async function () {
     await this.join(this.wallet, this.accumulator.address, null, expandTo18Decimals(100));

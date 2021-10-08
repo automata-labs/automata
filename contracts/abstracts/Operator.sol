@@ -79,22 +79,26 @@ abstract contract Operator is IOperator {
     }
 
     /// @inheritdoc IOperatorFunctions
-    function join(address tox, address toy) external {
+    function join(address tox, address toy) external returns (uint128 amount) {
         if (observe) _observe();
-        uint256 amount = ISequencer(sequencer).deposit();
-        require(amount > 0, "0");
-        require(IKernel(kernel).pool(coin, amount.u128().i128()) <= limit, "LIM");
-        IKernel(kernel).modify(coin, tox, amount.u128().i128(), 0);
-        IKernel(kernel).modify(coin, toy, 0, amount.u128().i128());
 
-        emit Joined(msg.sender, tox, toy, amount.u128());
+        amount = ISequencer(sequencer).deposit().u128();
+        require(amount > 0, "0");
+
+        require(IKernel(kernel).pool(coin, amount.i128()) <= limit, "LIM");
+        IKernel(kernel).modify(coin, tox, amount.i128(), 0);
+        IKernel(kernel).modify(coin, toy, 0, amount.i128());
+
+        emit Joined(msg.sender, tox, toy, amount);
     }
 
     /// @inheritdoc IOperatorFunctions
-    function exit(address to) external {
-        Slot.Data memory slot = IKernel(kernel).get(coin, address(this));
-        uint128 amount = Math.min(slot.x, slot.y).u128();
+    function exit(address to) external returns (uint128 amount) {
+        (uint128 x, uint128 y) = IKernel(kernel).slot(coin, address(this));
+        amount = Math.min(x, y).u128();
         require(amount > 0, "0");
+
+        IKernel(kernel).pool(coin, -amount.i128());
         IKernel(kernel).modify(coin, address(this), -amount.i128(), -amount.i128());
         ISequencer(sequencer).withdraw(to, amount);
 
@@ -109,7 +113,7 @@ abstract contract Operator is IOperator {
     }
 
     /// @inheritdoc IOperatorFunctions
-    function use(uint256 pid, uint8 support) external virtual;
+    function use(uint256 pid, uint8 support) external virtual returns (uint128 amount);
 
     /// @inheritdoc IOperatorFunctions
     function route(uint256 pid, uint256 cursor) external virtual;
