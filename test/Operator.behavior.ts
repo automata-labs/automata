@@ -93,7 +93,7 @@ export function shouldBehaveLikeJoin() {
     await this.token.transfer(this.sequencer.address, expandTo18Decimals(1));
     await expect(this.operator.join(this.wallet.address, this.wallet.address))
       .to.emit(this.operator, 'Joined')
-      .withArgs(this.wallet.address, this.wallet.address, this.wallet.address, expandTo18Decimals(1));
+      .withArgs(this.wallet.address, this.wallet.address, expandTo18Decimals(1));
   });
 }
 
@@ -197,7 +197,7 @@ export function shouldBehaveLikeExit() {
     await this.operator.transfer(this.operator.address, expandTo18Decimals(100), expandTo18Decimals(100));
     await expect(this.operator.exit(this.wallet.address))
       .to.emit(this.operator, 'Exited')
-      .withArgs(this.wallet.address, this.wallet.address, expandTo18Decimals(100));
+      .withArgs(this.wallet.address, expandTo18Decimals(100));
   });
 }
 
@@ -284,7 +284,8 @@ export function shouldBehaveLikeUse() {
     await this.propose(this.wallet, this.governor);
 
     await this.operator.transfer(this.accumulator.address, 0, expandTo18Decimals(100));
-    await expect(this.operator.use(this.pid, 1)).to.emit(this.operator, 'Used').withArgs(this.wallet.address, this.pid, 1);
+    await expect(this.operator.use(this.pid, 1)).to.emit(this.operator, 'Used')
+      .withArgs(this.pid, 1);
   });
 }
 

@@ -150,7 +150,7 @@ describe('Sequencer', async () => {
     });
     it('should emit an event', async () => {
       const address = await sequencer.compute(0);
-      await expect(sequencer.clone()).to.emit(sequencer, 'Cloned').withArgs(wallet.address, 0, address);
+      await expect(sequencer.clone()).to.emit(sequencer, 'Cloned').withArgs(0, address);
     });
   });
 
@@ -356,8 +356,8 @@ describe('Sequencer', async () => {
     });
     it('should emit an event', async () => {
       await clones(5);
-      await expect(deposit(expandTo18Decimals(10))).to.emit(sequencer, 'Sequenced').withArgs(wallet.address, expandTo18Decimals(10));;
-      await expect(deposit(expandTo18Decimals(5))).to.emit(sequencer, 'Sequenced').withArgs(wallet.address, expandTo18Decimals(15));
+      await expect(deposit(expandTo18Decimals(10))).to.emit(sequencer, 'Sequenced').withArgs(expandTo18Decimals(10));;
+      await expect(deposit(expandTo18Decimals(5))).to.emit(sequencer, 'Sequenced').withArgs(expandTo18Decimals(15));
     });
   });
 
@@ -447,9 +447,7 @@ describe('Sequencer', async () => {
     it('should emit an event', async () => {
       await clones(5);
       await deposit(expandTo18Decimals(5));
-      await expect(withdraw(expandTo18Decimals(3), holder.address))
-        .to.emit(sequencer, 'Withdrawn')
-        .withArgs(wallet.address, expandTo18Decimals(2));
+      await expect(withdraw(expandTo18Decimals(3), holder.address)).to.emit(sequencer, 'Withdrawn').withArgs(expandTo18Decimals(2));
     });
   });
 });

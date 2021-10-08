@@ -7,7 +7,7 @@
     "fuzz": "echidna-test contracts/test/$npm_config_contract.sol --contract $npm_config_contract --config ./echidna.config.yaml --check-asserts",
     "gas": "hardhat test test/*.gas.ts",
     "lint": "solhint 'contracts/**/*.sol'",
-    "measure": "mocha test --require hardhat/register --recursive --exit 'test/*.gas.ts' --update",
+    "snapshot": "mocha test --require hardhat/register --recursive --exit 'test/*.gas.ts' --update",
     "test": "hardhat test test/*.spec.ts"
   },
   "license": "BUSL-1.1",

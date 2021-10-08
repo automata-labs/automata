@@ -61,7 +61,7 @@ describe('Kernel', async () => {
     it('should emit an event', async () => {
       const key = ethers.utils.keccak256(abi.encode(['address'], [wallet.address]));
       await expect(kernel.write(key, 1, 3))
-        .to.emit(kernel, 'Written').withArgs(wallet.address, key, 1, 3);
+        .to.emit(kernel, 'Written').withArgs(key, 1, 3);
     });
   });
 
@@ -133,7 +133,7 @@ describe('Kernel', async () => {
     });
     it('should emit an event', async () => {
       await expect(kernel.update(key, 1, 2))
-        .to.emit(kernel, 'Updated').withArgs(wallet.address, key, 1, 2);
+        .to.emit(kernel, 'Updated').withArgs(key, 1, 2);
     });
   });
 
@@ -235,7 +235,7 @@ describe('Kernel', async () => {
       await kernel.write(from, 10, 11);
       await kernel.write(from, 12, 13);
       await expect(kernel.transfer(from, to, 4, 5))
-        .to.emit(kernel, 'Transferred').withArgs(wallet.address, from, to, 4, 5);
+        .to.emit(kernel, 'Transferred').withArgs(from, to, 4, 5);
     });
   });
 });

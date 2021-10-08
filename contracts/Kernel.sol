@@ -21,7 +21,7 @@ contract Kernel is IKernel, Access {
         slots[key].x = x;
         slots[key].y = y;
 
-        emit Written(msg.sender, key, x, y);
+        emit Written(key, x, y);
     }
 
     /// @inheritdoc IKernelFunctions
@@ -37,7 +37,7 @@ contract Kernel is IKernel, Access {
             unchecked { slots[key].y -= uint128(-dy); }
         }
 
-        emit Updated(msg.sender, key, dx, dy);
+        emit Updated(key, dx, dy);
 
         return slots[key];
     }
@@ -53,6 +53,6 @@ contract Kernel is IKernel, Access {
         slots[to].x += x;
         slots[to].y += y;
 
-        emit Transferred(msg.sender, from, to, x, y);
+        emit Transferred(from, to, x, y);
     }
 }
