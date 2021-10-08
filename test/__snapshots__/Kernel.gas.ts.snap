@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Kernel #update gas update 1`] = `37649`;
+exports[`Kernel #update gas update 1`] = `37373`;
 
-exports[`Kernel #write gas first write 1`] = `53287`;
+exports[`Kernel #write gas first write 1`] = `52984`;
 
-exports[`Kernel #write gas write 1`] = `36187`;
+exports[`Kernel #write gas write 1`] = `35884`;

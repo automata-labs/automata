@@ -1,5 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Application.gas #mint gas first mint 1`] = `428900`;
+exports[`Application.gas #mint gas first mint 1`] = `427239`;
 
-exports[`Application.gas #mint gas mint 1`] = `294600`;
+exports[`Application.gas #mint gas mint 1`] = `292939`;
