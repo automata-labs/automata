@@ -88,11 +88,9 @@ contract Sequencer is ISequencer, Access {
         require(balance > 0, "0");
         require(balance <= _capacity(), "OVF");
 
-        liquidity += balance;
-
         uint256 amount = 0;
         while (amount != balance) {
-            uint256 pivot = liquidity - balance + amount;
+            uint256 pivot = liquidity + amount;
             uint256 cursor = Cursor.getCursorRoundingUp(pivot);
 
             address shard = shards[cursor];
@@ -107,6 +105,8 @@ contract Sequencer is ISequencer, Access {
                 amount = balance;
             }
         }
+
+        liquidity += balance;
 
         emit Sequenced(msg.sender, liquidity);
     }

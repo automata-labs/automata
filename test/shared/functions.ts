@@ -1,4 +1,3 @@
-import { BigNumberish } from '@ethersproject/bignumber';
 import { ethers } from 'hardhat';
 import { Accumulator, ERC20CompLike, Kernel, OperatorA, OperatorB, OperatorMock, Sequencer } from '../../typechain';
 
