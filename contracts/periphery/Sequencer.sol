@@ -108,7 +108,7 @@ contract Sequencer is ISequencer, Access {
 
         liquidity += balance;
 
-        emit Sequenced(msg.sender, liquidity);
+        emit Sequenced(liquidity);
     }
 
     /// @inheritdoc ISequencerFunctions
@@ -136,7 +136,7 @@ contract Sequencer is ISequencer, Access {
             }
         }
 
-        emit Withdrawn(msg.sender, liquidity);
+        emit Withdrawn(liquidity);
     }
 
     /// @inheritdoc ISequencerFunctions
@@ -173,6 +173,6 @@ contract Sequencer is ISequencer, Access {
         cursors[cloned] = cursor;
         shards.push(cloned);
 
-        emit Cloned(msg.sender, cursor, cloned);
+        emit Cloned(cursor, cloned);
     }
 }

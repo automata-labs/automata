@@ -31,7 +31,7 @@ contract OperatorB is Operator {
             revert("8");
         }
 
-        emit Used(msg.sender, pid, support);
+        emit Used(pid, support);
     }
 
     /// @inheritdoc IOperatorFunctions
@@ -66,7 +66,7 @@ contract OperatorB is Operator {
         data[0] = abi.encodeWithSelector(IGovernorBravo.castVote.selector, pid, support);
         ISequencer(sequencer).execute(cursor, targets, data);
 
-        emit Routed(msg.sender, pid, cursor);
+        emit Routed(pid, cursor);
     }
 
     function _observe() internal view override {
