@@ -1,0 +1,225 @@
+import { expect } from 'chai';
+import { ethers, waffle } from 'hardhat';
+
+import { erc20CompLikeFixture, governorAlphaFixture } from './shared/fixtures';
+import {
+  deploy,
+  expandTo18Decimals,
+  ROOT,
+} from './shared/utils';
+import {
+  Accumulator,
+  Application,
+  ERC20CompLike,
+  GovernorAlphaMock,
+  Kernel,
+  Linear,
+  OperatorA,
+  Sequencer,
+  VToken,
+} from '../typechain';
+import { functions } from './shared/functions';
+
+const { MaxUint256 } = ethers.constants;
+const { loadFixture, provider } = waffle;
+
+describe('Application', async () => {
+  let abi = new ethers.utils.AbiCoder();
+  let wallet;
+
+  let token: ERC20CompLike;
+  let governor: GovernorAlphaMock;
+
+  let kernel: Kernel;
+  let accumulator: Accumulator;
+  let sequencer: Sequencer;
+  let operator: OperatorA;
+  let linear: Linear;
+  let vToken: VToken;
+
+  let application: Application;
+
+  let propose;
+
+  const fixture = async () => {
+    [wallet] = await provider.getWallets();
+
+    token = await erc20CompLikeFixture(provider, wallet);
+    ({ governor } = await governorAlphaFixture(provider, token, wallet));
+
+    kernel = (await deploy('Kernel')) as Kernel;
+    accumulator = (await deploy('Accumulator', kernel.address)) as Accumulator;
+    sequencer = (await deploy('Sequencer', token.address)) as Sequencer;
+    operator = (await deploy('OperatorA', token.address, kernel.address)) as OperatorA;
+    linear = (await deploy('Linear')) as Linear;
+    vToken = (await deploy('VToken', token.address, kernel.address)) as VToken;
+
+    application = (await deploy('Application')) as Application;
+
+    // setup
+    await token.approve(sequencer.address, MaxUint256);
+    await sequencer.clones(10);
+
+    await kernel.grantRole(ROOT, accumulator.address);
+    await kernel.grantRole(ROOT, operator.address);
+    await kernel.grantRole(ROOT, vToken.address);
+    await sequencer.grantRole(ROOT, operator.address);
+
+    await operator.set(operator.interface.getSighash('accumulator'), abi.encode(['address'], [accumulator.address]));
+    await operator.set(operator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
+    await operator.set(operator.interface.getSighash('governor'), abi.encode(['address'], [governor.address]));
+    await operator.set(operator.interface.getSighash('period'), abi.encode(['uint32'], [20]));
+    await operator.set(operator.interface.getSighash('computer'), abi.encode(['address'], [linear.address]));
+    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(10000)]));
+
+    ({ propose } = functions({ token, kernel, accumulator, sequencer, operator }));
+  };
+
+  const mintFixture = async () => {
+    await fixture();
+
+    await token.approve(application.address, MaxUint256);
+  };
+
+  const growFixture = async () => {
+    await fixture();
+
+    await token.approve(application.address, MaxUint256);
+  };
+
+  const burnFixture = async () => {
+    await fixture();
+
+    await token.approve(application.address, MaxUint256);
+    await vToken.approve(application.address, MaxUint256);
+  };
+
+  const voteFixture = async () => {
+    await fixture();
+
+    await token.approve(application.address, MaxUint256);
+    await vToken.approve(application.address, MaxUint256);
+  };
+
+  describe('#mint', async () => {
+    beforeEach(async () => {
+      await loadFixture(mintFixture);
+    });
+
+    it('should mint', async () => {
+      const id = await accumulator.next();
+      await application.mint({
+        token: token.address,
+        sequencer: sequencer.address,
+        operator: operator.address,
+        accumulator: accumulator.address,
+        vToken: vToken.address,
+        to: wallet.address,
+        amount: 1,
+      });
+
+      expect(await sequencer.liquidity()).to.equal(1);
+      expect(await vToken.balanceOf(wallet.address)).to.equal(1);
+      expect(await accumulator.balanceOf(wallet.address)).to.equal(1);
+      expect(await accumulator.ownerOf(id)).to.equal(wallet.address);
+    });
+  });
+
+  describe('#grow', async () => {
+    beforeEach(async () => {
+      await loadFixture(growFixture);
+    });
+      
+    it('should grow', async () => {
+      const id = await accumulator.next();
+      await application.mint({
+        token: token.address,
+        sequencer: sequencer.address,
+        operator: operator.address,
+        accumulator: accumulator.address,
+        vToken: vToken.address,
+        to: wallet.address,
+        amount: 1,
+      });
+
+      await application.grow({
+        id,
+        token: token.address,
+        sequencer: sequencer.address,
+        operator: operator.address,
+        accumulator: accumulator.address,
+        vToken: vToken.address,
+        to: wallet.address,
+        amount: 1,
+      });
+
+      expect(await sequencer.liquidity()).to.equal(2);
+      expect(await vToken.balanceOf(wallet.address)).to.equal(2);
+      expect(await accumulator.balanceOf(wallet.address)).to.equal(1);
+      expect(await accumulator.ownerOf(id)).to.equal(wallet.address);
+    });
+  });
+
+  describe('#burn', async () => {
+    beforeEach(async () => {
+      await loadFixture(burnFixture);
+    });
+
+    it('should burn', async () => {
+      const id = await accumulator.next();
+      await application.mint({
+        token: token.address,
+        sequencer: sequencer.address,
+        operator: operator.address,
+        accumulator: accumulator.address,
+        vToken: vToken.address,
+        to: wallet.address,
+        amount: 1,
+      });
+      await accumulator.approve(application.address, id);
+
+      await application.burn({
+        id,
+        sequencer: sequencer.address,
+        operator: operator.address,
+        accumulator: accumulator.address,
+        vToken: vToken.address,
+        to: wallet.address,
+        amount: 1,
+      });
+    });
+  });
+
+  describe('#vote', async () => {
+    beforeEach(async () => {
+      await loadFixture(voteFixture);
+    });
+
+    it('should vote', async () => {
+      await application.mint({
+        token: token.address,
+        sequencer: sequencer.address,
+        operator: operator.address,
+        accumulator: accumulator.address,
+        vToken: vToken.address,
+        to: wallet.address,
+        amount: 1,
+      });
+
+      await propose(wallet, governor);
+      const pid = await governor.proposalCount();
+
+      await application.vote({
+        operator: operator.address,
+        accumulator: accumulator.address,
+        vToken: vToken.address,
+        pid,
+        support: 1,
+        amount: 1,
+      });
+
+      expect((await operator.votes(pid)).x).to.equal(1);
+      expect((await operator.votes(pid)).y).to.equal(0);
+    });
+  });
+});

@@ -15,7 +15,7 @@ module.exports = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 50000,
+            runs: 100000,
           }
         },
       },
@@ -24,11 +24,22 @@ module.exports = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 5000,
+            runs: 999999,
           }
         },
       },
     ],
+  },
+  overrides: {
+    'contracts/Kernel.sol': {
+      version: '0.8.9',
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 999999,
+        },
+      },
+    },
   },
   gasReporter: {
     enabled: true,

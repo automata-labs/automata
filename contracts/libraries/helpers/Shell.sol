@@ -9,6 +9,10 @@ library Shell {
         return kernel.read(keccak256(abi.encode(coin, owner)));
     }
 
+    function slot(IKernel kernel, address coin, address owner) internal view returns (uint128 x, uint128 y) {
+        return kernel.slots(keccak256(abi.encode(coin, owner)));
+    }
+
     function pool(IKernel kernel, address coin, int128 d) internal returns (uint128) {
         return kernel.update(keccak256(abi.encode(address(kernel), coin)), d, 0).x;
     }

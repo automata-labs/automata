@@ -1,6 +1,6 @@
 import { use } from 'chai';
 import { ethers, waffle } from 'hardhat';
-import { jestSnapshotPlugin } from 'mocha-chai-jest-snapshot'
+import { jestSnapshotPlugin } from 'mocha-chai-jest-snapshot';
 
 import { deploy, snapshotGasCost } from './shared/utils';
 import { Kernel } from '../typechain';
