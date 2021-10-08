@@ -23,9 +23,6 @@ describe('Accumulator', async () => {
 
   let read: Function;
   let join: Function;
-  let globs: Function;
-  let units: Function;
-  let normalized: Function;
 
   const fixture = async () => {
     ([wallet, other1, other2] = await ethers.getSigners());
@@ -55,7 +52,24 @@ describe('Accumulator', async () => {
       await loadFixture(fixture);
     });
 
-    it('should mint', async () => {
+    it('should mint nft only', async () => {
+      const id = await accumulator.next();
+      await accumulator.mint(token.address, wallet.address);
+
+      expect(await accumulator.ownerOf(id)).to.equal(wallet.address);
+      expect(await accumulator.balanceOf(wallet.address)).to.equal(1);
+
+      expect((await accumulator.stakes(id)).nonce).to.equal(0);
+      expect((await accumulator.stakes(id)).coin).to.equal(token.address);
+      expect((await accumulator.stakes(id)).x).to.equal(0);
+      expect((await accumulator.stakes(id)).y).to.equal(0);
+      expect((await accumulator.stakes(id)).x128).to.equal(0);
+
+      expect((await accumulator.pools(token.address)).x).to.equal(0);
+      expect((await accumulator.pools(token.address)).y).to.equal(0);
+      expect((await accumulator.pools(token.address)).x128).to.equal(0);
+    });
+    it('should mint nft with 1', async () => {
       const id = await accumulator.next();
       await join(wallet, accumulator.address, wallet.address, 1);
       await accumulator.mint(token.address, wallet.address);
@@ -72,6 +86,40 @@ describe('Accumulator', async () => {
       expect((await accumulator.pools(token.address)).x).to.equal(1);
       expect((await accumulator.pools(token.address)).y).to.equal(0);
       expect((await accumulator.pools(token.address)).x128).to.equal(0);
+    });
+    it('should mint multiple nfts', async () => {
+      const id1 = await accumulator.next();
+      await accumulator.connect(wallet).mint(token.address, wallet.address);
+      const id2 = await accumulator.next();
+      await accumulator.connect(other1).mint(token.address, other1.address);
+      const id3 = await accumulator.next();
+      await accumulator.connect(wallet).mint(token.address, wallet.address);
+
+      expect(await accumulator.ownerOf(id1)).to.equal(wallet.address);
+      expect(await accumulator.ownerOf(id2)).to.equal(other1.address);
+      expect(await accumulator.ownerOf(id3)).to.equal(wallet.address);
+      expect(await accumulator.balanceOf(wallet.address)).to.equal(2);
+      expect(await accumulator.balanceOf(other1.address)).to.equal(1);
+
+      for (let i = 1; i <= 3; i++) {
+        expect((await accumulator.stakes(eval(`id${i}`))).nonce).to.equal(0);
+        expect((await accumulator.stakes(eval(`id${i}`))).coin).to.equal(token.address);
+        expect((await accumulator.stakes(eval(`id${i}`))).x).to.equal(0);
+        expect((await accumulator.stakes(eval(`id${i}`))).y).to.equal(0);
+        expect((await accumulator.stakes(eval(`id${i}`))).x128).to.equal(0);
+      }
+
+      expect((await accumulator.pools(token.address)).x).to.equal(0);
+      expect((await accumulator.pools(token.address)).y).to.equal(0);
+      expect((await accumulator.pools(token.address)).x128).to.equal(0);
+    });
+    it('should mint to another account', async () => {
+      const id = await accumulator.next();
+      await accumulator.connect(wallet).mint(token.address, other1.address);
+
+      expect(await accumulator.ownerOf(id)).to.equal(other1.address);
+      expect(await accumulator.balanceOf(wallet.address)).to.equal(0);
+      expect(await accumulator.balanceOf(other1.address)).to.equal(1);
     });
   });
 
@@ -102,6 +150,31 @@ describe('Accumulator', async () => {
       expect((await accumulator.pools(token.address)).x).to.equal(0);
       expect((await accumulator.pools(token.address)).y).to.equal(0);
       expect((await accumulator.pools(token.address)).x128).to.equal(0);
+    });
+    it('should revert when nft\'s `x` not zero', async () => {
+      const id = await accumulator.next();
+      await join(wallet, accumulator.address, wallet.address, 1);
+      await accumulator.mint(token.address, wallet.address);
+
+      await expect(accumulator.burn(id)).to.be.revertedWith('!0');
+    });
+    it('should revert when nft\'s `y` not zero', async () => {
+      const id = await accumulator.next();
+      await join(wallet, accumulator.address, accumulator.address, 1);
+      await accumulator.mint(token.address, wallet.address);
+      await accumulator.grow(token.address);
+      await accumulator.unstake(id, wallet.address, 1);
+
+      await expect(accumulator.burn(id)).to.be.revertedWith('!0');
+    });
+    it('should revert when caller not approved', async () => {
+      const id = await accumulator.next();
+      await join(wallet, accumulator.address, wallet.address, 1);
+      await accumulator.mint(token.address, wallet.address);
+      await accumulator.unstake(id, wallet.address, 1);
+
+      await expect(accumulator.connect(other1).burn(id)).to.be.revertedWith('Not approved');
+      await expect(accumulator.connect(other2).burn(id)).to.be.revertedWith('Not approved');
     });
   });
 
@@ -291,6 +364,11 @@ describe('Accumulator', async () => {
       // reverts
       await expect(accumulator.unstake(id, wallet.address, 2)).to.be.revertedWith('0x11');
     });
+    it('should revert when caller not approved', async () => {
+      const id = await accumulator.next();
+      await accumulator.mint(token.address, wallet.address);
+      await expect(accumulator.connect(other1).unstake(id, wallet.address, 0)).to.be.revertedWith('Not approved');
+    });
     it('should emit an event', async () => {
       const id = await accumulator.next();
       await join(wallet, accumulator.address, wallet.address, expandTo18Decimals(100));
@@ -355,6 +433,11 @@ describe('Accumulator', async () => {
       await expect(accumulator.collect(id, wallet.address, 0)).to.be.revertedWith('0');
       await expect(accumulator.collect(id, wallet.address, 1)).to.be.revertedWith('0');
       await expect(accumulator.collect(id, wallet.address, MaxUint128)).to.be.revertedWith('0');
+    });
+    it('should revert when caller not approved', async () => {
+      const id = await accumulator.next();
+      await accumulator.mint(token.address, wallet.address);
+      await expect(accumulator.connect(other1).collect(id, other1.address, 0)).to.be.revertedWith('Not approved');
     });
     it('should emit an event', async () => {
       const id = await accumulator.next();
@@ -442,12 +525,12 @@ describe('Accumulator', async () => {
       await join(wallet, wallet.address, accumulator.address, expandTo18Decimals(100));
       await expect(accumulator.grow(token.address)).to.be.revertedWith('DIV0');
     });
-    // it('should emit an event', async () => {
-    //   await join(wallet, expandTo18Decimals(100), accumulator.address, accumulator.address);
-    //   await accumulator.stake(token.address, wallet.address);
-    //   await expect(accumulator.grow(token.address))
-    //     .to.emit(accumulator, 'Grown')
-    //     .withArgs(wallet.address, token.address, expandTo18Decimals(100));
-    // });
+    it('should emit an event', async () => {
+      await join(wallet, accumulator.address, accumulator.address, expandTo18Decimals(100));
+      await accumulator.mint(token.address, wallet.address);
+
+      await expect(accumulator.grow(token.address)).to.emit(accumulator, 'Grown')
+        .withArgs(token.address, expandTo18Decimals(100));
+    });
   });
 });
