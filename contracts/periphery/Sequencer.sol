@@ -108,7 +108,7 @@ contract Sequencer is ISequencer, Access {
 
         liquidity += balance;
 
-        emit Sequenced(liquidity);
+        emit Deposited(liquidity);
     }
 
     /// @inheritdoc ISequencerFunctions

@@ -356,8 +356,8 @@ describe('Sequencer', async () => {
     });
     it('should emit an event', async () => {
       await clones(5);
-      await expect(deposit(expandTo18Decimals(10))).to.emit(sequencer, 'Sequenced').withArgs(expandTo18Decimals(10));;
-      await expect(deposit(expandTo18Decimals(5))).to.emit(sequencer, 'Sequenced').withArgs(expandTo18Decimals(15));
+      await expect(deposit(expandTo18Decimals(10))).to.emit(sequencer, 'Deposited').withArgs(expandTo18Decimals(10));;
+      await expect(deposit(expandTo18Decimals(5))).to.emit(sequencer, 'Deposited').withArgs(expandTo18Decimals(15));
     });
   });
 
