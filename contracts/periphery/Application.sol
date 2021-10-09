@@ -16,8 +16,8 @@ contract Application is IApplication {
     function mint(MintParams memory params) external returns (uint256 id, uint128 amount) {
         params.token.safeTransferFrom(msg.sender, params.sequencer, params.amount);
 
-        IOperator(params.operator).join(params.accumulator, params.vToken);
-        require(IToken(params.vToken).mint(params.to) >= params.amount, "Insufficiently minted");
+        if (params.amount > 0) IOperator(params.operator).join(params.accumulator, params.vToken);
+        if (params.amount > 0) require(IToken(params.vToken).mint(params.to) >= params.amount, "Insufficiently minted");
         (id, amount) = IAccumulator(params.accumulator).mint(params.token, params.to);
         require(amount >= params.amount, "Insufficiently staked");
     }
