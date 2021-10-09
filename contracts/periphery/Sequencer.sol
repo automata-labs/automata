@@ -14,11 +14,13 @@ import "../libraries/access/Access.sol";
 import "../libraries/helpers/TransferHelper.sol";
 import "../libraries/math/Cursor.sol";
 
+library Constants {
+    uint256 internal constant MaxClones = uint256(2) ** uint256(8);
+}
+
 /// @title Sequencer
 contract Sequencer is ISequencer, Access {
     using TransferHelper for address;
-
-    uint256 private constant MAX_CLONES = uint256(2) ** uint256(8);
 
     /// @inheritdoc ISequencerImmutables
     address public immutable coin;
@@ -49,7 +51,7 @@ contract Sequencer is ISequencer, Access {
 
     /// @inheritdoc ISequencerStateDerived
     function cardinalityMax() external pure returns (uint256) {
-        return MAX_CLONES;
+        return Constants.MaxClones;
     }
 
     /// @inheritdoc ISequencerStateDerived
@@ -64,7 +66,7 @@ contract Sequencer is ISequencer, Access {
 
     /// @inheritdoc ISequencerFunctions
     function clone() external returns (uint256, address) {
-        require(_cardinality() + 1 <= MAX_CLONES, "MAX");
+        require(_cardinality() + 1 <= Constants.MaxClones, "MAX");
         return _clone();
     }
 
@@ -73,7 +75,7 @@ contract Sequencer is ISequencer, Access {
         uint256[] memory cursored,
         address[] memory cloned
     ) {
-        require(_cardinality() + amount <= MAX_CLONES, "MAX");
+        require(_cardinality() + amount <= Constants.MaxClones, "MAX");
 
         cursored = new uint256[](amount);
         cloned = new address[](amount);
