@@ -26,6 +26,7 @@ const { loadFixture, provider } = waffle;
 describe('Application', async () => {
   let abi = new ethers.utils.AbiCoder();
   let wallet;
+  let other1;
 
   let token: ERC20CompLike;
   let governor: GovernorAlphaMock;
@@ -41,8 +42,47 @@ describe('Application', async () => {
 
   let propose;
 
+  const mint = async (caller, to, amount) => {
+    await application.connect(caller).mint({
+      token: token.address,
+      sequencer: sequencer.address,
+      operator: operator.address,
+      accumulator: accumulator.address,
+      vToken: vToken.address,
+      to,
+      amount,
+    });
+
+    return (await accumulator.next()).toNumber() - 1;
+  };
+
+  const grow = async (caller, id, to, amount) => {
+    await application.connect(caller).grow({
+      id,
+      token: token.address,
+      sequencer: sequencer.address,
+      operator: operator.address,
+      accumulator: accumulator.address,
+      vToken: vToken.address,
+      to,
+      amount,
+    });
+  };
+
+  const burn = async (caller, id, to, amount) => {
+    await application.connect(caller).burn({
+      id,
+      sequencer: sequencer.address,
+      operator: operator.address,
+      accumulator: accumulator.address,
+      vToken: vToken.address,
+      to,
+      amount,
+    });
+  };
+
   const fixture = async () => {
-    [wallet] = await provider.getWallets();
+    [wallet, other1] = await provider.getWallets();
 
     token = await erc20CompLikeFixture(provider, wallet);
     ({ governor } = await governorAlphaFixture(provider, token, wallet));
@@ -85,6 +125,7 @@ describe('Application', async () => {
     await fixture();
 
     await token.approve(application.address, MaxUint256);
+    await mint(wallet, wallet.address, 0);
   };
 
   const burnFixture = async () => {
@@ -108,20 +149,52 @@ describe('Application', async () => {
 
     it('should mint', async () => {
       const id = await accumulator.next();
-      await application.mint({
-        token: token.address,
-        sequencer: sequencer.address,
-        operator: operator.address,
-        accumulator: accumulator.address,
-        vToken: vToken.address,
-        to: wallet.address,
-        amount: 1,
-      });
+      await mint(wallet, wallet.address, 1);
 
       expect(await sequencer.liquidity()).to.equal(1);
       expect(await vToken.balanceOf(wallet.address)).to.equal(1);
       expect(await accumulator.balanceOf(wallet.address)).to.equal(1);
       expect(await accumulator.ownerOf(id)).to.equal(wallet.address);
+    });
+    it('should mint with zero (nft only)', async () => {
+      await mint(wallet, wallet.address, 0);
+    });
+    it('should mint to max capacity', async () => {
+      const id = await accumulator.next();
+      await mint(wallet, wallet.address, expandTo18Decimals(1023));
+
+      expect(await sequencer.liquidity()).to.equal(expandTo18Decimals(1023));
+      expect(await sequencer.capacity()).to.equal(0);
+      expect(await vToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(1023));
+      expect(await accumulator.balanceOf(wallet.address)).to.equal(1);
+      expect(await accumulator.ownerOf(id)).to.equal(wallet.address);
+    });
+    it('should revert when minting overflows in sequencer', async () => {
+      await expect(
+        mint(wallet, wallet.address, expandTo18Decimals(1023).add(1))
+      ).to.be.revertedWith('OVF');
+    });
+    it('should revert when insufficient balance of caller', async () => {
+      await expect(mint(other1, other1.address, 1)).to.be.revertedWith('STF');
+    });
+    it('should revert when coin not approved', async () => {
+      await token.approve(application.address, 0);
+      await expect(mint(wallet, wallet.address, 1)).to.be.revertedWith('STF');
+    });
+    it('should revert when any contract passed in parameters is invalid', async () => {
+      for (let i = 0; i < 5; i++) {
+        await expect(
+          application.mint({
+            token: i == 0 ? wallet.address : token.address,
+            sequencer: i == 1 ? wallet.address : sequencer.address,
+            operator: i == 2 ? wallet.address : operator.address,
+            accumulator: i == 3 ? wallet.address : accumulator.address,
+            vToken: i == 4 ? wallet.address : vToken.address,
+            to: wallet.address,
+            amount: 1,
+          })
+        ).to.be.reverted;
+      }
     });
   });
 
@@ -131,32 +204,38 @@ describe('Application', async () => {
     });
       
     it('should grow', async () => {
-      const id = await accumulator.next();
-      await application.mint({
-        token: token.address,
-        sequencer: sequencer.address,
-        operator: operator.address,
-        accumulator: accumulator.address,
-        vToken: vToken.address,
-        to: wallet.address,
-        amount: 1,
-      });
+      const id = (await accumulator.next()).toNumber() - 1;
+      await grow(wallet, id, wallet.address, 1);
 
-      await application.grow({
-        id,
-        token: token.address,
-        sequencer: sequencer.address,
-        operator: operator.address,
-        accumulator: accumulator.address,
-        vToken: vToken.address,
-        to: wallet.address,
-        amount: 1,
-      });
-
-      expect(await sequencer.liquidity()).to.equal(2);
-      expect(await vToken.balanceOf(wallet.address)).to.equal(2);
+      expect(await sequencer.liquidity()).to.equal(1);
+      expect(await vToken.balanceOf(wallet.address)).to.equal(1);
       expect(await accumulator.balanceOf(wallet.address)).to.equal(1);
       expect(await accumulator.ownerOf(id)).to.equal(wallet.address);
+    });
+    it('should revert when growing zero', async () => {
+      const id = (await accumulator.next()).toNumber() - 1;
+      await expect(grow(wallet, id, wallet.address, 0)).to.be.revertedWith('0');
+    });
+    it('should revert when invalid id', async () => {
+
+    });
+    it('should revert when any contract passed in parameters is invalid', async () => {
+      const id = (await accumulator.next()).toNumber() - 1;
+
+      for (let i = 0; i < 5; i++) {
+        await expect(
+          application.grow({
+            id,
+            token: i == 0 ? wallet.address : token.address,
+            sequencer: i == 1 ? wallet.address : sequencer.address,
+            operator: i == 2 ? wallet.address : operator.address,
+            accumulator: i == 3 ? wallet.address : accumulator.address,
+            vToken: i == 4 ? wallet.address : vToken.address,
+            to: wallet.address,
+            amount: 1,
+          })
+        ).to.be.reverted;
+      }
     });
   });
 
@@ -167,26 +246,38 @@ describe('Application', async () => {
 
     it('should burn', async () => {
       const id = await accumulator.next();
-      await application.mint({
-        token: token.address,
-        sequencer: sequencer.address,
-        operator: operator.address,
-        accumulator: accumulator.address,
-        vToken: vToken.address,
-        to: wallet.address,
-        amount: 1,
-      });
+      await mint(wallet, wallet.address, 1);
       await accumulator.approve(application.address, id);
 
-      await application.burn({
-        id,
-        sequencer: sequencer.address,
-        operator: operator.address,
-        accumulator: accumulator.address,
-        vToken: vToken.address,
-        to: wallet.address,
-        amount: 1,
-      });
+      await burn(wallet, id, wallet.address, 1);
+    });
+    it('should revert when burning more than balance', async () => {
+      const id = await accumulator.next();
+      await mint(wallet, wallet.address, 1);
+      await accumulator.approve(application.address, id);
+
+      await expect(burn(wallet, id, wallet.address, 2)).to.be.revertedWith('STF');
+    });
+    it('should revert when burning zero', async () => {
+      const id = (await accumulator.next()).toNumber() - 1;
+      await expect(burn(wallet, id, wallet.address, 0)).to.be.revertedWith('0');
+    });
+    it('should revert when any contract passed in parameters is invalid', async () => {
+      const id = (await accumulator.next()).toNumber() - 1;
+
+      for (let i = 0; i < 4; i++) {
+        await expect(
+          application.burn({
+            id,
+            sequencer: i == 0 ? wallet.address : sequencer.address,
+            operator: i == 1 ? wallet.address : operator.address,
+            accumulator: i == 2 ? wallet.address : accumulator.address,
+            vToken: i == 3 ? wallet.address : vToken.address,
+            to: wallet.address,
+            amount: 1,
+          })
+        ).to.be.reverted;
+      }
     });
   });
 
@@ -196,16 +287,7 @@ describe('Application', async () => {
     });
 
     it('should vote', async () => {
-      await application.mint({
-        token: token.address,
-        sequencer: sequencer.address,
-        operator: operator.address,
-        accumulator: accumulator.address,
-        vToken: vToken.address,
-        to: wallet.address,
-        amount: 1,
-      });
-
+      await mint(wallet, wallet.address, 1);
       await propose(wallet, governor);
       const pid = await governor.proposalCount();
 
