@@ -75,7 +75,7 @@ abstract contract Operator is IOperator {
         else if (selector == IOperatorState.limit.selector) limit = abi.decode(data, (uint256));
         else revert("!");
 
-        emit Set(selector, data);
+        emit Set(msg.sender, selector, data);
     }
 
     /// @inheritdoc IOperatorFunctions
@@ -89,7 +89,7 @@ abstract contract Operator is IOperator {
         IKernel(kernel).modify(coin, tox, amount.i128(), 0);
         IKernel(kernel).modify(coin, toy, 0, amount.i128());
 
-        emit Joined(tox, toy, amount);
+        emit Joined(msg.sender, tox, toy, amount);
     }
 
     /// @inheritdoc IOperatorFunctions
@@ -102,14 +102,14 @@ abstract contract Operator is IOperator {
         IKernel(kernel).modify(coin, address(this), -amount.i128(), -amount.i128());
         ISequencer(sequencer).withdraw(to, amount);
 
-        emit Exited(to, amount);
+        emit Exited(msg.sender, to, amount);
     }
 
     /// @inheritdoc IOperatorFunctions
     function transfer(address to, uint128 x, uint128 y) external {
         IKernel(kernel).transfer(coin, msg.sender, to, x, y);
 
-        emit Transferred(to, x, y);
+        emit Transferred(msg.sender, to, x, y);
     }
 
     /// @inheritdoc IOperatorFunctions
