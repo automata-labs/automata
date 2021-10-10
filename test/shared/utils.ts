@@ -1,9 +1,11 @@
 import { TransactionReceipt, TransactionResponse } from '@ethersproject/abstract-provider';
 import { expect } from 'chai';
-import { Contract, BigNumber, ContractTransaction, utils } from 'ethers';
+import { constants, Contract, BigNumber, BigNumberish, ContractTransaction, utils, Wallet } from 'ethers';
 import { ethers } from 'hardhat';
 
-const { keccak256, toUtf8Bytes } = utils;
+import { ERC20CompLike, ERC20Permit } from '../../typechain';
+
+const { keccak256, splitSignature, toUtf8Bytes } = utils;
 
 /**
  * Math
@@ -135,4 +137,122 @@ export async function snapshotGasCost(
   } else if (BigNumber.isBigNumber(resolved)) {
     expect(resolved.toNumber()).toMatchSnapshot();
   }
+}
+
+/**
+ * Permit
+ */
+
+export async function getPermitSignatureWithoutVersion(
+  wallet: Wallet,
+  token: ERC20Permit | ERC20CompLike,
+  spender: string,
+  value: BigNumberish = constants.MaxUint256,
+  deadline = constants.MaxUint256,
+  permitConfig?: { nonce?: BigNumberish; name?: string; chainId?: number; }
+) {
+  const [nonce, name, chainId] = await Promise.all([
+    permitConfig?.nonce ?? token.nonces(wallet.address),
+    permitConfig?.name ?? token.name(),
+    permitConfig?.chainId ?? wallet.getChainId(),
+  ])
+
+  return splitSignature(
+    await wallet._signTypedData(
+      {
+        name,
+        chainId,
+        verifyingContract: token.address,
+      },
+      {
+        Permit: [
+          {
+            name: 'owner',
+            type: 'address',
+          },
+          {
+            name: 'spender',
+            type: 'address',
+          },
+          {
+            name: 'value',
+            type: 'uint256',
+          },
+          {
+            name: 'nonce',
+            type: 'uint256',
+          },
+          {
+            name: 'deadline',
+            type: 'uint256',
+          },
+        ],
+      },
+      {
+        owner: wallet.address,
+        spender,
+        value,
+        nonce,
+        deadline,
+      }
+    )
+  )
+}
+
+export async function getPermitSignature(
+  wallet: Wallet,
+  token: ERC20Permit | ERC20CompLike,
+  spender: string,
+  value: BigNumberish = constants.MaxUint256,
+  deadline = constants.MaxUint256,
+  permitConfig?: { nonce?: BigNumberish; name?: string; chainId?: number; version?: string }
+) {
+  const [nonce, name, version, chainId] = await Promise.all([
+    permitConfig?.nonce ?? token.nonces(wallet.address),
+    permitConfig?.name ?? token.name(),
+    permitConfig?.version ?? '1',
+    permitConfig?.chainId ?? wallet.getChainId(),
+  ])
+
+  return splitSignature(
+    await wallet._signTypedData(
+      {
+        name,
+        version,
+        chainId,
+        verifyingContract: token.address,
+      },
+      {
+        Permit: [
+          {
+            name: 'owner',
+            type: 'address',
+          },
+          {
+            name: 'spender',
+            type: 'address',
+          },
+          {
+            name: 'value',
+            type: 'uint256',
+          },
+          {
+            name: 'nonce',
+            type: 'uint256',
+          },
+          {
+            name: 'deadline',
+            type: 'uint256',
+          },
+        ],
+      },
+      {
+        owner: wallet.address,
+        spender,
+        value,
+        nonce,
+        deadline,
+      }
+    )
+  )
 }

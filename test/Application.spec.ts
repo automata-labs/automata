@@ -5,6 +5,7 @@ import { erc20CompLikeFixture, governorAlphaFixture } from './shared/fixtures';
 import {
   deploy,
   expandTo18Decimals,
+  getPermitSignatureWithoutVersion,
   ROOT,
 } from './shared/utils';
 import {
@@ -115,6 +116,10 @@ describe('Application', async () => {
     ({ propose } = functions({ token, kernel, accumulator, sequencer, operator }));
   };
 
+  const permitFixture = async () => {
+    await fixture();
+  };
+
   const mintFixture = async () => {
     await fixture();
 
@@ -142,6 +147,20 @@ describe('Application', async () => {
     await vToken.approve(application.address, MaxUint256);
   };
 
+  describe('#permit', async () => {
+    beforeEach(async () => {
+      await loadFixture(permitFixture);
+    });
+    
+    it('should permit', async () => {
+      const { v, r, s } = await getPermitSignatureWithoutVersion(wallet, token, application.address, 1);
+
+      expect(await token.allowance(wallet.address, application.address)).to.be.eq(0);
+      await token.permit(wallet.address, application.address, 1, MaxUint256, v, r, s);
+      expect(await token.allowance(wallet.address, application.address)).to.be.eq(1);
+    });
+  });
+
   describe('#mint', async () => {
     beforeEach(async () => {
       await loadFixture(mintFixture);
@@ -150,6 +169,27 @@ describe('Application', async () => {
     it('should mint', async () => {
       const id = await accumulator.next();
       await mint(wallet, wallet.address, 1);
+
+      expect(await sequencer.liquidity()).to.equal(1);
+      expect(await vToken.balanceOf(wallet.address)).to.equal(1);
+      expect(await accumulator.balanceOf(wallet.address)).to.equal(1);
+      expect(await accumulator.ownerOf(id)).to.equal(wallet.address);
+    });
+    it('should mint with permit', async () => {
+      const id = await accumulator.next();
+      const { v, r, s } = await getPermitSignatureWithoutVersion(wallet, token, application.address, 1);
+      await application.multicall([
+        application.interface.encodeFunctionData('selfPermitIfNecessary', [token.address, 1, MaxUint256, v, r, s]),
+        application.interface.encodeFunctionData('mint', [{
+          token: token.address,
+          sequencer: sequencer.address,
+          operator: operator.address,
+          accumulator: accumulator.address,
+          vToken: vToken.address,
+          to: wallet.address,
+          amount: 1,
+        }])
+      ]);
 
       expect(await sequencer.liquidity()).to.equal(1);
       expect(await vToken.balanceOf(wallet.address)).to.equal(1);

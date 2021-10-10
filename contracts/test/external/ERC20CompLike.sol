@@ -92,6 +92,19 @@ contract ERC20CompLike {
         mintingAllowedAfter = mintingAllowedAfter_;
     }
 
+    function DOMAIN_SEPARATOR() external view returns (bytes32) {
+        uint256 chainId;
+        assembly { chainId := chainid() }
+        return keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)"),
+                keccak256(bytes(name)),
+                chainId,
+                address(this)
+            )
+        );
+    }
+
     /**
      * @notice Change the minter address
      * @param minter_ The address of the new minter
