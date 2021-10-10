@@ -12,6 +12,11 @@ library Pool {
         uint256 x128;
     }
 
+    /// @notice Sum deltas to the state.
+    /// @param self The state.
+    /// @param dx The `x` delta.
+    /// @param dy The `y` delta.
+    /// @param x128a The `x128` addend.
     function modify(
         Pool.Data storage self,
         int128 dx,

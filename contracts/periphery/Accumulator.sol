@@ -26,9 +26,10 @@ contract Accumulator is IAccumulator, ERC721Permit {
     /// @inheritdoc IAccumulatorState
     mapping(uint256 => Stake.Data) public stakes;
 
-    /// @dev The ID of the next token that will be minted. Skips 0
+    /// @dev The identifier of the next ERC721 that will be minted - skips zero.
     uint256 private _id = 1;
 
+    /// @dev Only authorize the owner or approved addresses.
     modifier isAuthorizedForToken(uint256 id) {
         require(_isApprovedOrOwner(msg.sender, id), "Not approved");
         _;
