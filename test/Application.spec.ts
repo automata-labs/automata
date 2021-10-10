@@ -5,6 +5,7 @@ import { erc20CompLikeFixture, governorAlphaFixture } from './shared/fixtures';
 import {
   deploy,
   expandTo18Decimals,
+  getPermitNFTSignature,
   getPermitSignatureWithoutVersion,
   ROOT,
 } from './shared/utils';
@@ -290,6 +291,31 @@ describe('Application', async () => {
       await accumulator.approve(application.address, id);
 
       await burn(wallet, id, wallet.address, 1);
+    });
+    it('should burn with permit', async () => {
+      const id = await accumulator.next();
+      await mint(wallet, wallet.address, 2);
+
+      expect(await accumulator.getApproved(id)).to.equal(ethers.constants.AddressZero);
+      const { v, r, s } = await getPermitNFTSignature(wallet, accumulator, application.address, id, MaxUint256);
+      await application.multicall([
+        application.interface.encodeFunctionData('selfPermitERC721', [accumulator.address, id, MaxUint256, v, r, s]),
+        application.interface.encodeFunctionData('burn', [{
+          id,
+          sequencer: sequencer.address,
+          operator: operator.address,
+          accumulator: accumulator.address,
+          vToken: vToken.address,
+          to: wallet.address,
+          amount: 1,
+        }])
+      ]);
+
+      expect(await accumulator.getApproved(id)).to.equal(application.address);
+      expect(await sequencer.liquidity()).to.equal(1);
+      expect(await vToken.balanceOf(wallet.address)).to.equal(1);
+      expect(await accumulator.balanceOf(wallet.address)).to.equal(1);
+      expect(await accumulator.ownerOf(id)).to.equal(wallet.address);
     });
     it('should revert when burning more than balance', async () => {
       const id = await accumulator.next();

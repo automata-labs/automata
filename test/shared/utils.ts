@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { constants, Contract, BigNumber, BigNumberish, ContractTransaction, utils, Wallet } from 'ethers';
 import { ethers } from 'hardhat';
 
-import { ERC20CompLike, ERC20Permit } from '../../typechain';
+import { Accumulator, ERC20CompLike, ERC20Permit } from '../../typechain';
 
 const { keccak256, splitSignature, toUtf8Bytes } = utils;
 
@@ -204,7 +204,7 @@ export async function getPermitSignature(
   token: ERC20Permit | ERC20CompLike,
   spender: string,
   value: BigNumberish = constants.MaxUint256,
-  deadline = constants.MaxUint256,
+  deadline: BigNumberish = constants.MaxUint256,
   permitConfig?: { nonce?: BigNumberish; name?: string; chainId?: number; version?: string }
 ) {
   const [nonce, name, version, chainId] = await Promise.all([
@@ -250,6 +250,60 @@ export async function getPermitSignature(
         owner: wallet.address,
         spender,
         value,
+        nonce,
+        deadline,
+      }
+    )
+  )
+}
+
+export async function getPermitNFTSignature(
+  wallet: Wallet,
+  accumulator: Accumulator,
+  spender: string,
+  tokenId: BigNumberish,
+  deadline: BigNumberish = constants.MaxUint256,
+  permitConfig?: { nonce?: BigNumberish; name?: string; chainId?: number; version?: string }
+) {
+  const [nonce, name, version, chainId] = await Promise.all([
+    permitConfig?.nonce ?? accumulator.stakes(tokenId).then((s) => s.nonce),
+    permitConfig?.name ?? accumulator.name(),
+    permitConfig?.version ?? '1',
+    permitConfig?.chainId ?? wallet.getChainId(),
+  ])
+
+  return splitSignature(
+    await wallet._signTypedData(
+      {
+        name,
+        version,
+        chainId,
+        verifyingContract: accumulator.address,
+      },
+      {
+        Permit: [
+          {
+            name: 'spender',
+            type: 'address',
+          },
+          {
+            name: 'tokenId',
+            type: 'uint256',
+          },
+          {
+            name: 'nonce',
+            type: 'uint256',
+          },
+          {
+            name: 'deadline',
+            type: 'uint256',
+          },
+        ],
+      },
+      {
+        owner: wallet.address,
+        spender,
+        tokenId,
         nonce,
         deadline,
       }

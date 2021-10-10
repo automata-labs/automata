@@ -34,7 +34,7 @@ contract Accumulator is IAccumulator, ERC721Permit {
         _;
     }
 
-    constructor(IKernel kernel_) ERC721Permit("Automata NFT V0", "AAAA-NFT0", "0") {
+    constructor(IKernel kernel_) ERC721Permit("Automata NFT V1", "AAAA-NFT0", "1") {
         kernel = kernel_;
     }
 

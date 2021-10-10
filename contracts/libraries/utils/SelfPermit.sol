@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.5.0;
 
-import "@uniswap/v3-periphery/contracts/interfaces/external/IERC20PermitAllowed.sol";
+import "@uniswap/v3-periphery/contracts/interfaces/IERC721Permit.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISelfPermit.sol";
+import "@uniswap/v3-periphery/contracts/interfaces/external/IERC20PermitAllowed.sol";
 import "@yield-protocol/utils-v2/contracts/token/IERC20.sol";
 import "@yield-protocol/utils-v2/contracts/token/IERC2612.sol";
 
@@ -11,6 +12,17 @@ import "@yield-protocol/utils-v2/contracts/token/IERC2612.sol";
 /// @dev These functions are expected to be embedded in multicalls to allow EOAs to approve a contract and call a function
 /// that requires an approval in a single transaction.
 abstract contract SelfPermit is ISelfPermit {
+    function selfPermitERC721(
+        address token,
+        uint256 tokenId,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public payable {
+        IERC721Permit(token).permit(address(this), tokenId, deadline, v, r, s);
+    }
+
     /// @inheritdoc ISelfPermit
     function selfPermit(
         address token,
