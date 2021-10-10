@@ -6,6 +6,7 @@ import { erc20CompLikeFixture, governorAlphaFixture } from './shared/fixtures';
 import {
   deploy,
   expandTo18Decimals,
+  getPermitSignatureWithoutVersion,
   ROOT,
   snapshotGasCost,
 } from './shared/utils';
@@ -117,6 +118,36 @@ describe('Application.gas', async () => {
           to: wallet.address,
           amount: 1,
         })
+      );
+    });
+
+    it('gas mint with permit', async () => {
+      await token.approve(application.address, MaxUint256);
+      await application.mint({
+        token: token.address,
+        sequencer: sequencer.address,
+        operator: operator.address,
+        accumulator: accumulator.address,
+        vToken: vToken.address,
+        to: wallet.address,
+        amount: 1,
+      });
+      await token.transfer(holder.address, 2); // 2 to not clear slot when transferring 1
+
+      const { v, r, s } = await getPermitSignatureWithoutVersion(holder, token, application.address, 1);
+      await snapshotGasCost(
+        application.connect(holder).multicall([
+          application.interface.encodeFunctionData('selfPermitIfNecessary', [token.address, 1, MaxUint256, v, r, s]),
+          application.interface.encodeFunctionData('mint', [{
+            token: token.address,
+            sequencer: sequencer.address,
+            operator: operator.address,
+            accumulator: accumulator.address,
+            vToken: vToken.address,
+            to: wallet.address,
+            amount: 1,
+          }])
+        ])
       );
     });
   });
