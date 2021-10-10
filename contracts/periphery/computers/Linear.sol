@@ -7,6 +7,7 @@ import "../../interfaces/IComputer.sol";
 
 /// @title Linear
 contract Linear is IComputer {
+    /// @inheritdoc IComputer
     function compute(uint128 m, uint128 x, uint128 y) external pure returns (uint8, uint256) {
         if (x > y) {
             return (uint8(1), Math.min(m, x - y));

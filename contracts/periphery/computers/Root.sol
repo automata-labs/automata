@@ -8,6 +8,7 @@ import "../../libraries/math/Babylonian.sol";
 
 /// @title Root
 contract Root is IComputer {
+    /// @inheritdoc IComputer
     function compute(uint128 m, uint128 x, uint128 y) external pure returns (uint8, uint256) {
         uint8 s = (x > y) ? uint8(1) : uint8(0);
         uint256 z = (x > y) ? x - y : y - x;

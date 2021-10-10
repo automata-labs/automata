@@ -18,6 +18,9 @@ library Stake {
         uint256 x128;
     }
 
+    /// @notice Returns a state with up-to-date `y` and `x128` values.
+    /// @param self The state.
+    /// @param x128 The `x128` value of the pool.
     function normalize(
         Stake.Data memory self,
         uint256 x128
@@ -27,6 +30,11 @@ library Stake {
         _self.x128 = x128;
     }
 
+    /// @notice Sum deltas to the state.
+    /// @param self The storage state.
+    /// @param dx The `x` delta.
+    /// @param dy The `y` delta.
+    /// @param x128 The `x128` of the pool.
     function modify(
         Stake.Data storage self,
         int128 dx,
