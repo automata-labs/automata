@@ -1,5 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`Application.gas #burn gas burn with permit 1`] = `310836`;
+
 exports[`Application.gas #mint gas first mint 1`] = `427510`;
 
 exports[`Application.gas #mint gas mint 1`] = `293210`;
