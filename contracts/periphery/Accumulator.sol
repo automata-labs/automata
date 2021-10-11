@@ -54,7 +54,6 @@ contract Accumulator is IAccumulator, ERC721Permit {
         id = _id++;
         dx = kernel.get(coin, address(this)).x - pools[coin].x;
 
-        _safeMint(to, id);
         stakes[id] = Stake.Data({
             nonce: 0,
             coin: coin,
@@ -63,6 +62,8 @@ contract Accumulator is IAccumulator, ERC721Permit {
             x128: pools[coin].x128
         });
         pools[coin].modify(dx.i128(), 0, 0);
+
+        _safeMint(to, id);
 
         emit Picked(id, coin);
         emit Staked(id, dx);
@@ -114,7 +115,7 @@ contract Accumulator is IAccumulator, ERC721Permit {
         pools[coin].modify(0, -c.i128(), 0);
         kernel.transfer(coin, address(this), to, 0, c);
 
-        emit Collected(id, to, dy);
+        emit Collected(id, to, c);
     }
 
     /// @inheritdoc IAccumulatorFunctions
