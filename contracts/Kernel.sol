@@ -3,11 +3,11 @@ pragma solidity ^0.8.0;
 
 import "./interfaces/IKernel.sol";
 
-import "./libraries/access/Access.sol";
+import "./libraries/access/AccessControl.sol";
 import "./libraries/data/Slot.sol";
 
 /// @title Kernel
-contract Kernel is IKernel, Access {
+contract Kernel is IKernel, AccessControl {
     /// @inheritdoc IKernelState
     mapping(bytes32 => Slot.Data) public slots;
 

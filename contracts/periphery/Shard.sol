@@ -6,17 +6,17 @@ import "../interfaces/IShard.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 import "../interfaces/external/IERC20CompLike.sol";
-import "../libraries/access/Access.sol";
+import "../libraries/access/AccessControl.sol";
 import "../libraries/helpers/TransferHelper.sol";
 import "../libraries/utils/RevertMsgExtractor.sol";
 
 /// @title Shard
-contract Shard is IShard, Access, Initializable {
+contract Shard is IShard, AccessControl, Initializable {
     using TransferHelper for address;
 
     /// @inheritdoc IShardFunctions
     function initialize() external initializer {
-        _grantRole(Access(address(this)).ROOT(), msg.sender);
+        _grantRole(AccessControl(address(this)).ROOT(), msg.sender);
         emit Initialized();
     }
 

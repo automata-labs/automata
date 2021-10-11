@@ -10,7 +10,7 @@ import "@yield-protocol/utils-v2/contracts/token/IERC20Metadata.sol";
 import "./Shard.sol";
 import "../interfaces/IShard.sol";
 import "../interfaces/external/IERC20CompLike.sol";
-import "../libraries/access/Access.sol";
+import "../libraries/access/AccessControl.sol";
 import "../libraries/helpers/TransferHelper.sol";
 import "../libraries/math/Cursor.sol";
 
@@ -19,7 +19,7 @@ library Constants {
 }
 
 /// @title Sequencer
-contract Sequencer is ISequencer, Access {
+contract Sequencer is ISequencer, AccessControl {
     using TransferHelper for address;
 
     /// @inheritdoc ISequencerImmutables
