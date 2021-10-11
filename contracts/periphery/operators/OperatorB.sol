@@ -84,4 +84,29 @@ contract OperatorB is Operator {
         (,,, uint256 start, uint256 end,,,,,) = IGovernorBravo(governor).proposals(pid);
         return (start, start + period - 1, start + period, end);
     }
+
+    function _checkpoint(uint256 pid, uint256 blockNumber) internal override returns (Checkpoint.Data memory) {
+        if (checkpoints[pid].votes == 0) {
+            uint256 checkpointedVotes;
+            ISequencer _sequencer = ISequencer(sequencer);
+
+            for (uint256 i = 0; i < _sequencer.cardinality(); i++) {
+                uint256 priorVotes =
+                    IERC20CompLike(coin).getPriorVotes(_sequencer.shards(i), blockNumber);
+                uint256 capacity = (uint256(10) ** uint256(18) << i);
+
+                if (priorVotes < capacity || i == _sequencer.cardinality() - 1) {
+                    checkpointedVotes += priorVotes;
+                    break;
+                } else {
+                    checkpointedVotes += priorVotes;
+                }
+            }
+
+            checkpoints[pid].votes = checkpointedVotes;
+            checkpoints[pid].cursor = Cursor.getCursorRoundingUp(checkpointedVotes);
+        }
+
+        return checkpoints[pid];
+    }
 }
