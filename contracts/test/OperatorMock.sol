@@ -15,4 +15,6 @@ contract OperatorMock is Operator {
     function _observe() internal view override {}
 
     function _timeline(uint256 pid) internal view override returns (uint256, uint256, uint256, uint256) {}
+
+    function _checkpoint(uint256 pid, uint256 blockNumber) internal override returns (Checkpoint.Data memory) {}
 }
