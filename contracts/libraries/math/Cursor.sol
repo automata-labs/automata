@@ -27,12 +27,6 @@ library Cursor {
         if (number == 0) return 0;
 
         uint256 msb = BitMath.mostSignificantBit(number);
-        // if sum of power of 2 and has decimals, then increment by 1
-        // this solves the problem of being on the right cursor when withdrawing on decimal points
-        if (number + 1 & number == 0) {
-            return (liquidity - number * (uint256(10) ** uint256(18)) >= 0) ? msb + 1 : msb;
-        } else {
-            return msb;
-        }
+        return ((number + 1 & number) == 0) ? msb + 1 : msb;
     }
 }

@@ -28,6 +28,7 @@ contract VToken is IToken, ERC20Permit {
         string(abi.encodePacked("v", IERC20Metadata(coin_).symbol())),
         18
     ) {
+        require(coin_ != address(0), "0");
         coin = coin_;
         kernel = kernel_;
     }

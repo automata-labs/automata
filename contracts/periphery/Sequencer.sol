@@ -162,18 +162,18 @@ contract Sequencer is ISequencer, AccessControl {
         cursor = _cardinality();
         cloned = Clones.cloneDeterministic(implementation, keccak256(abi.encodePacked(cursor)));
 
-        // send value 1 of coin to shard to initialize storage slot, saving gas
-        // shard not initializing with 0 tokens does not affect the logic
-        coin.safeTransferFrom(msg.sender, cloned, 1);
+        // update
+        cursors[cloned] = cursor;
+        shards.push(cloned);
 
         // delegate to self after cloning shard.
         // will fail if `coin` is not a `CompLike` token.
         IShard(cloned).initialize();
         IShard(cloned).delegate(coin, cloned);
 
-        // update
-        cursors[cloned] = cursor;
-        shards.push(cloned);
+        // send value 1 of coin to shard to initialize storage slot, saving gas
+        // shard not initializing with 0 tokens does not affect the logic
+        coin.safeTransferFrom(msg.sender, cloned, 1);
 
         emit Cloned(cursor, cloned);
     }
