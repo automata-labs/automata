@@ -34,7 +34,7 @@ pragma solidity ^0.8.0;
  * grant and revoke this role. Extra precautions should be taken to secure
  * accounts that have been granted it.
  */
-contract Access {
+contract AccessControl {
     struct RoleData {
         mapping (address => bool) members;
         bytes4 adminRole;
