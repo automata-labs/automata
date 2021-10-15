@@ -4,7 +4,7 @@ import { shouldBehaveLikeExit, shouldBehaveLikeJoin, shouldBehaveLikeLinearRoute
 import { erc20CompLikeFixture, governorBravoFixture } from './shared/fixtures';
 import {
   deploy,
-  expandTo18Decimals,
+  e18,
   ROOT,
 } from './shared/utils';
 import {
@@ -78,7 +78,7 @@ describe('OperatorB', async () => {
 
     await operator.set(operator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
     await operator.set(operator.interface.getSighash('governor'), abi.encode(['address'], [governor.address]));
-    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(10000)]));
+    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [e18(10000)]));
   };
 
   const exitFixture = async () => {
@@ -100,7 +100,7 @@ describe('OperatorB', async () => {
     await operator.set(operator.interface.getSighash('governor'), abi.encode(['address'], [governor.address]));
     await operator.set(operator.interface.getSighash('period'), abi.encode(['uint32'], [20]));
     await operator.set(operator.interface.getSighash('computer'), abi.encode(['address'], [linear.address]));
-    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(10000)]));
+    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [e18(10000)]));
   };
 
   const routeBaseFixture = async () => {
@@ -116,7 +116,7 @@ describe('OperatorB', async () => {
     await operator.set(operator.interface.getSighash('period'), abi.encode(['uint32'], [20]));
     await operator.set(operator.interface.getSighash('computer'), abi.encode(['address'], [linear.address]));
     await operator.set(operator.interface.getSighash('observe'), abi.encode(['bool'], [false]));
-    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(10000)]));
+    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [e18(10000)]));
   };
 
   const routeLinearFixture = async () => {

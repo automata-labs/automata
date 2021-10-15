@@ -1,6 +1,6 @@
 import { ethers } from 'hardhat';
 
-import { expandTo18Decimals, TIMELOCK_DELAY } from './utils';
+import { e18, TIMELOCK_DELAY } from './utils';
 import { ERC20CompLike, GovernorAlphaMock, GovernorBravoMock, Timelock } from '../../typechain';
 
 const { Contract } = ethers;
@@ -36,7 +36,7 @@ export async function governorBravoFixture(provider, token, wallet) {
     wallet.address,
     100,
     1,
-    expandTo18Decimals(50000)
+    e18(50000)
   )) as GovernorBravoMock;
 
   await governor['_initiate()']();

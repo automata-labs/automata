@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { ethers, waffle } from 'hardhat';
 
-import { deploy, expandTo18Decimals, MaxUint128 } from './shared/utils';
+import { deploy, e18, MaxUint128 } from './shared/utils';
 import { Kernel } from '../typechain';
 
 const { BigNumber } = ethers;
@@ -37,9 +37,9 @@ describe('Kernel', async () => {
     });
     it('should write e18 scaled values', async () => {
       const key = ethers.utils.keccak256(abi.encode(['address'], [wallet.address]));
-      await kernel.write(key, expandTo18Decimals(1), expandTo18Decimals(2));
-      expect((await kernel.read(key)).x).to.equal(expandTo18Decimals(1));
-      expect((await kernel.read(key)).y).to.equal(expandTo18Decimals(2));
+      await kernel.write(key, e18(1), e18(2));
+      expect((await kernel.read(key)).x).to.equal(e18(1));
+      expect((await kernel.read(key)).y).to.equal(e18(2));
     });
     it('should write max', async () => {
       const key = ethers.utils.keccak256(abi.encode(['address'], [wallet.address]));

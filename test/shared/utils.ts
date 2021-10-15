@@ -11,11 +11,11 @@ const { keccak256, splitSignature, toUtf8Bytes } = utils;
  * Math
  */
 
-export function expandTo18Decimals(n: number | string) {
+export function e18(n: number | string) {
   return BigNumber.from(n).mul(BigNumber.from(10).pow(18));
 }
 
-export function expandWithDecimals(n: number | string, decimals: number | string) {
+export function eN(n: number | string, decimals: number | string) {
   return BigNumber.from(n).mul(BigNumber.from(10).pow(decimals));
 }
 

@@ -5,7 +5,7 @@ import { jestSnapshotPlugin } from 'mocha-chai-jest-snapshot';
 import { erc20CompLikeFixture, governorAlphaFixture } from './shared/fixtures';
 import {
   deploy,
-  expandTo18Decimals,
+  e18,
   getPermitNFTSignature,
   getPermitSignature,
   getPermitSignatureWithoutVersion,
@@ -73,7 +73,7 @@ describe('Application.gas', async () => {
 
     await operator.set(operator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
     await operator.set(operator.interface.getSighash('governor'), abi.encode(['address'], [governor.address]));
-    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(10000)]));
+    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [e18(10000)]));
   };
 
   const burnFixture = async () => {
@@ -89,7 +89,7 @@ describe('Application.gas', async () => {
 
     await operator.set(operator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
     await operator.set(operator.interface.getSighash('governor'), abi.encode(['address'], [governor.address]));
-    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(10000)]));
+    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [e18(10000)]));
   };
 
   describe('#mint', async () => {
