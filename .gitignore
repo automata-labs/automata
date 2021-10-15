@@ -8,6 +8,7 @@ crytic-export
 
 # Hardhat files
 cache
+scripts
 artifacts
 typechain
 coverage
