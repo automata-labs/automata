@@ -3,7 +3,7 @@ import { ethers, waffle } from 'hardhat';
 
 import { erc20CompLikeFixture } from './shared/fixtures';
 import { functions } from './shared/functions';
-import { deploy, expandTo18Decimals, ROOT } from './shared/utils';
+import { deploy, e18, ROOT } from './shared/utils';
 import { VToken, ERC20CompLike, Kernel, OperatorA, Sequencer } from '../typechain';
 
 const { MaxUint256 } = ethers.constants;
@@ -39,7 +39,7 @@ describe('VToken', async () => {
     await kernel.grantRole(ROOT, vToken.address);
     await sequencer.grantRole(ROOT, operator.address);
     await operator.set(operator.interface.getSighash('sequencer'), abi.encode(['address'], [sequencer.address]));
-    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(10000)])); 
+    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [e18(10000)])); 
 
     await token.approve(sequencer.address, MaxUint256);
     await sequencer.clones(10);
@@ -61,17 +61,17 @@ describe('VToken', async () => {
 
   describe('#mint', async () => {
     it('should mint', async () => {
-      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
+      await join(wallet, wallet.address, vToken.address, e18(100));
       expect((await read(token.address, vToken.address)).x).to.equal(0);
-      expect((await read(token.address, vToken.address)).y).to.equal(expandTo18Decimals(100));
-      expect((await read(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
+      expect((await read(token.address, vToken.address)).y).to.equal(e18(100));
+      expect((await read(token.address, wallet.address)).x).to.equal(e18(100));
       expect((await read(token.address, wallet.address)).y).to.equal(0);
       
       // mint
       expect(await vToken.balanceOf(wallet.address)).to.equal(0);
       await vToken.mint(wallet.address);
-      expect(await vToken.totalSupply()).to.equal(expandTo18Decimals(100));
-      expect(await vToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(100));
+      expect(await vToken.totalSupply()).to.equal(e18(100));
+      expect(await vToken.balanceOf(wallet.address)).to.equal(e18(100));
 
       // mint again to see nothing happens
       await expect(vToken.mint(wallet.address)).to.be.revertedWith('0');
@@ -80,55 +80,55 @@ describe('VToken', async () => {
       await expect(vToken.mint(wallet.address)).to.be.revertedWith('0');
     });
     it('should emit an event', async () => {
-      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
+      await join(wallet, wallet.address, vToken.address, e18(100));
       await expect(vToken.mint(wallet.address))
         .to.emit(vToken, 'Transfer')
-        .withArgs(ethers.constants.AddressZero, wallet.address, expandTo18Decimals(100));
+        .withArgs(ethers.constants.AddressZero, wallet.address, e18(100));
     });
   });
 
   describe('#burn', async () => {
     it('should burn', async () => {
       // join & mint
-      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
+      await join(wallet, wallet.address, vToken.address, e18(100));
       await vToken.mint(wallet.address);
-      expect(await vToken.totalSupply()).to.equal(expandTo18Decimals(100));
-      expect(await vToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(100));
+      expect(await vToken.totalSupply()).to.equal(e18(100));
+      expect(await vToken.balanceOf(wallet.address)).to.equal(e18(100));
 
       // burn & join
-      await vToken.transfer(vToken.address, expandTo18Decimals(100));
+      await vToken.transfer(vToken.address, e18(100));
       await vToken.burn(wallet.address);
       expect((await read(token.address, vToken.address)).x).to.equal(0);
       expect((await read(token.address, vToken.address)).y).to.equal(0);
-      expect((await read(token.address, wallet.address)).x).to.equal(expandTo18Decimals(100));
-      expect((await read(token.address, wallet.address)).y).to.equal(expandTo18Decimals(100));
+      expect((await read(token.address, wallet.address)).x).to.equal(e18(100));
+      expect((await read(token.address, wallet.address)).y).to.equal(e18(100));
 
       // exit
-      await operator.transfer(operator.address, expandTo18Decimals(100), expandTo18Decimals(100));
+      await operator.transfer(operator.address, e18(100), e18(100));
       await operator.exit(other1.address);
-      expect(await token.balanceOf(other1.address)).to.equal(expandTo18Decimals(100));
+      expect(await token.balanceOf(other1.address)).to.equal(e18(100));
     });
     it('should revert when burning zero', async () => {
       await expect(vToken.burn(wallet.address)).to.be.revertedWith('0');
     });
     it('should revert when no access to kernel', async () => {
-      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
+      await join(wallet, wallet.address, vToken.address, e18(100));
       await vToken.mint(wallet.address);
-      expect(await vToken.totalSupply()).to.equal(expandTo18Decimals(100));
-      expect(await vToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(100));
+      expect(await vToken.totalSupply()).to.equal(e18(100));
+      expect(await vToken.balanceOf(wallet.address)).to.equal(e18(100));
 
       // revoke role for vToken contract
       await kernel.revokeRole(ROOT, vToken.address);
-      await vToken.transfer(vToken.address, expandTo18Decimals(100));
+      await vToken.transfer(vToken.address, e18(100));
       await expect(vToken.burn(wallet.address)).to.be.revertedWith('Access denied');
     });
     it('should emit an event', async () => {
-      await join(wallet, wallet.address, vToken.address, expandTo18Decimals(100));
+      await join(wallet, wallet.address, vToken.address, e18(100));
       await vToken.mint(wallet.address);
-      await vToken.transfer(vToken.address, expandTo18Decimals(100));
+      await vToken.transfer(vToken.address, e18(100));
       await expect(vToken.burn(wallet.address))
         .to.emit(vToken, 'Transfer')
-        .withArgs(vToken.address, ethers.constants.AddressZero, expandTo18Decimals(100));
+        .withArgs(vToken.address, ethers.constants.AddressZero, e18(100));
     });
   });
 });

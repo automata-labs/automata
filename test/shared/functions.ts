@@ -1,7 +1,7 @@
 import { ethers } from 'hardhat';
 import { Accumulator, ERC20CompLike, Kernel, OperatorA, OperatorB, OperatorMock, Sequencer } from '../../typechain';
 
-import { evmBlockNumber, evmMiner, expandTo18Decimals, MaxUint128 } from "./utils";
+import { evmBlockNumber, evmMiner, e18, MaxUint128 } from "./utils";
 
 type FunctionParameters = {
   token?: ERC20CompLike;
@@ -21,7 +21,7 @@ export function functions({ token, kernel, operator, sequencer, accumulator }: F
       [token.address],
       [0],
       ['mint(address,uint256)'],
-      [abi.encode(['address', 'uint256'], [to || caller.address, expandTo18Decimals(100)])],
+      [abi.encode(['address', 'uint256'], [to || caller.address, e18(100)])],
       `Mint to ${to || caller.address}`
     );
   };

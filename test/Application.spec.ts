@@ -4,7 +4,7 @@ import { ethers, waffle } from 'hardhat';
 import { erc20CompLikeFixture, governorAlphaFixture } from './shared/fixtures';
 import {
   deploy,
-  expandTo18Decimals,
+  e18,
   getPermitNFTSignature,
   getPermitSignatureWithoutVersion,
   ROOT,
@@ -112,7 +112,7 @@ describe('Application', async () => {
     await operator.set(operator.interface.getSighash('governor'), abi.encode(['address'], [governor.address]));
     await operator.set(operator.interface.getSighash('period'), abi.encode(['uint32'], [20]));
     await operator.set(operator.interface.getSighash('computer'), abi.encode(['address'], [linear.address]));
-    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [expandTo18Decimals(10000)]));
+    await operator.set(operator.interface.getSighash('limit'), abi.encode(['uint256'], [e18(10000)]));
 
     ({ propose } = functions({ token, kernel, accumulator, sequencer, operator }));
   };
@@ -202,17 +202,17 @@ describe('Application', async () => {
     });
     it('should mint to max capacity', async () => {
       const id = await accumulator.next();
-      await mint(wallet, wallet.address, expandTo18Decimals(1023));
+      await mint(wallet, wallet.address, e18(1023));
 
-      expect(await sequencer.liquidity()).to.equal(expandTo18Decimals(1023));
+      expect(await sequencer.liquidity()).to.equal(e18(1023));
       expect(await sequencer.capacity()).to.equal(0);
-      expect(await vToken.balanceOf(wallet.address)).to.equal(expandTo18Decimals(1023));
+      expect(await vToken.balanceOf(wallet.address)).to.equal(e18(1023));
       expect(await accumulator.balanceOf(wallet.address)).to.equal(1);
       expect(await accumulator.ownerOf(id)).to.equal(wallet.address);
     });
     it('should revert when minting overflows in sequencer', async () => {
       await expect(
-        mint(wallet, wallet.address, expandTo18Decimals(1023).add(1))
+        mint(wallet, wallet.address, e18(1023).add(1))
       ).to.be.revertedWith('OVF');
     });
     it('should revert when insufficient balance of caller', async () => {
