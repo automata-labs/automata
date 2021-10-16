@@ -46,11 +46,11 @@ describe('Application', async () => {
 
   const mint = async (caller, to, amount) => {
     await application.connect(caller).mint({
-      token: token.address,
+      coin: token.address,
       sequencer: sequencer.address,
       operator: operator.address,
       accumulator: accumulator.address,
-      vToken: vToken.address,
+      derivative: vToken.address,
       to,
       amount,
     });
@@ -61,11 +61,11 @@ describe('Application', async () => {
   const grow = async (caller, id, to, amount) => {
     await application.connect(caller).grow({
       id,
-      token: token.address,
+      coin: token.address,
       sequencer: sequencer.address,
       operator: operator.address,
       accumulator: accumulator.address,
-      vToken: vToken.address,
+      derivative: vToken.address,
       to,
       amount,
     });
@@ -77,7 +77,7 @@ describe('Application', async () => {
       sequencer: sequencer.address,
       operator: operator.address,
       accumulator: accumulator.address,
-      vToken: vToken.address,
+      derivative: vToken.address,
       to,
       amount,
     });
@@ -182,11 +182,11 @@ describe('Application', async () => {
       await application.multicall([
         application.interface.encodeFunctionData('selfPermitIfNecessary', [token.address, 1, MaxUint256, v, r, s]),
         application.interface.encodeFunctionData('mint', [{
-          token: token.address,
+          coin: token.address,
           sequencer: sequencer.address,
           operator: operator.address,
           accumulator: accumulator.address,
-          vToken: vToken.address,
+          derivative: vToken.address,
           to: wallet.address,
           amount: 1,
         }])
@@ -226,11 +226,11 @@ describe('Application', async () => {
       for (let i = 0; i < 5; i++) {
         await expect(
           application.mint({
-            token: i == 0 ? wallet.address : token.address,
+            coin: i == 0 ? wallet.address : token.address,
             sequencer: i == 1 ? wallet.address : sequencer.address,
             operator: i == 2 ? wallet.address : operator.address,
             accumulator: i == 3 ? wallet.address : accumulator.address,
-            vToken: i == 4 ? wallet.address : vToken.address,
+            derivative: i == 4 ? wallet.address : vToken.address,
             to: wallet.address,
             amount: 1,
           })
@@ -267,11 +267,11 @@ describe('Application', async () => {
         await expect(
           application.grow({
             id,
-            token: i == 0 ? wallet.address : token.address,
+            coin: i == 0 ? wallet.address : token.address,
             sequencer: i == 1 ? wallet.address : sequencer.address,
             operator: i == 2 ? wallet.address : operator.address,
             accumulator: i == 3 ? wallet.address : accumulator.address,
-            vToken: i == 4 ? wallet.address : vToken.address,
+            derivative: i == 4 ? wallet.address : vToken.address,
             to: wallet.address,
             amount: 1,
           })
@@ -305,7 +305,7 @@ describe('Application', async () => {
           sequencer: sequencer.address,
           operator: operator.address,
           accumulator: accumulator.address,
-          vToken: vToken.address,
+          derivative: vToken.address,
           to: wallet.address,
           amount: 1,
         }])
@@ -338,7 +338,7 @@ describe('Application', async () => {
             sequencer: i == 0 ? wallet.address : sequencer.address,
             operator: i == 1 ? wallet.address : operator.address,
             accumulator: i == 2 ? wallet.address : accumulator.address,
-            vToken: i == 3 ? wallet.address : vToken.address,
+            derivative: i == 3 ? wallet.address : vToken.address,
             to: wallet.address,
             amount: 1,
           })
@@ -360,7 +360,7 @@ describe('Application', async () => {
       await application.vote({
         operator: operator.address,
         accumulator: accumulator.address,
-        vToken: vToken.address,
+        derivative: vToken.address,
         pid,
         support: 1,
         amount: 1,
