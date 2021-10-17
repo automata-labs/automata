@@ -2,12 +2,12 @@
 pragma solidity ^0.8.0;
 
 struct MintParams {
-    address token;
+    address coin;
 
     address sequencer;
     address operator;
     address accumulator;
-    address vToken;
+    address derivative;
 
     address to;
     uint128 amount;
@@ -15,12 +15,12 @@ struct MintParams {
 
 struct GrowParams {
     uint256 id;
-    address token;
+    address coin;
 
     address sequencer;
     address operator;
     address accumulator;
-    address vToken;
+    address derivative;
 
     address to;
     uint128 amount;
@@ -32,7 +32,7 @@ struct BurnParams {
     address sequencer;
     address operator;
     address accumulator;
-    address vToken;
+    address derivative;
 
     address to;
     uint128 amount;
@@ -41,7 +41,7 @@ struct BurnParams {
 struct VoteParams {
     address operator;
     address accumulator;
-    address vToken;
+    address derivative;
 
     uint256 pid;
     uint8 support;

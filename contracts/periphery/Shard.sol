@@ -21,13 +21,13 @@ contract Shard is IShard, AccessControl, Initializable {
     }
 
     /// @inheritdoc IShardFunctions
-    function transfer(address token, address to, uint256 amount) external auth {
-        token.safeTransfer(to, amount);
+    function transfer(address coin, address to, uint256 amount) external auth {
+        coin.safeTransfer(to, amount);
     }
 
     /// @inheritdoc IShardFunctions
-    function delegate(address token, address delegatee) external auth {
-        IERC20CompLike(token).delegate(delegatee);
+    function delegate(address coin, address delegatee) external auth {
+        IERC20CompLike(coin).delegate(delegatee);
     }
 
     /// @inheritdoc IShardFunctions
