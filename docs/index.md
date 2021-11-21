@@ -5,7 +5,7 @@ The AS-001 protocol is a mechanism that tokenizes DAO token's votes into discret
 ## Files
 
 | Filename | Description |
-|---|---|
+| :--- | :--- |
 | Kernel.sol | The storage contract that is non-upgradeable. |
 | Accumulator.sol | The position contract. Represents each position as an ERC721. |
 | Sequencer.sol | The pool contract that manages all of the deposited DAO tokens. Because of limitations in Governor Alpha and -Bravo, the sequencer needs to be sharded into separate contracts, each with the power of `2`. The most shards are crossed when depositing, the higher the gas cost. When `n` in `2^n` is large enough, the gas cost will trend toward the same gas costs as if shards did not exist. |
