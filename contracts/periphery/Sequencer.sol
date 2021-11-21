@@ -60,6 +60,11 @@ contract Sequencer is ISequencer, AccessControl {
     }
 
     /// @inheritdoc ISequencerStateDerived
+    function capacityMax() external view returns (uint256) {
+        return (uint256(10) ** uint256(18) << _cardinality()) - uint256(10) ** uint256(18);
+    }
+
+    /// @inheritdoc ISequencerStateDerived
     function compute(uint256 cursor) external view returns (address) {
         return Clones.predictDeterministicAddress(implementation, keccak256(abi.encodePacked(cursor)), address(this));
     }
