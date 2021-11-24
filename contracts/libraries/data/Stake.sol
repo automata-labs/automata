@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "../math/Cast.sol";
-import "../math/Delta.sol";
-import "../math/FixedPoint.sol";
-import "../math/FullMath.sol";
+import "../../external/Cast.sol";
+import "../../external/Delta.sol";
+import "../../external/FixedPoint.sol";
+import "../../external/FullMath.sol";
 
 library Stake {
     using Cast for uint256;

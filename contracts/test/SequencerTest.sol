@@ -3,9 +3,8 @@ pragma solidity ^0.8.0;
 
 import "@yield-protocol/utils-v2/contracts/token/IERC20.sol";
 import "@yield-protocol/utils-v2/contracts/token/IERC20Metadata.sol";
-
-import "../libraries/access/AccessControl.sol";
-import "../libraries/helpers/TransferHelper.sol";
+import "../external/AccessControl.sol";
+import "../external/TransferHelper.sol";
 
 /// @dev An token contract that is constant to one. I.e. does not have shards.
 ///      This contract is used to test migration from the sharded sequencer to the constant sequencer.

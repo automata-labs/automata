@@ -5,18 +5,18 @@ import "../interfaces/IOperator.sol";
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@yield-protocol/utils-v2/contracts/token/IERC20Metadata.sol";
+import "../external/RevertMsgExtractor.sol";
+import "../external/Cast.sol";
 
 import "../interfaces/IAccumulator.sol";
 import "../interfaces/IComputer.sol";
 import "../interfaces/IKernel.sol";
 import "../interfaces/ISequencer.sol";
 import "../interfaces/external/IERC20CompLike.sol";
+import "../libraries/Cursor.sol";
+import "../libraries/Shell.sol";
 import "../libraries/data/Checkpoint.sol";
 import "../libraries/data/Slot.sol";
-import "../libraries/helpers/Shell.sol";
-import "../libraries/math/Cast.sol";
-import "../libraries/math/Cursor.sol";
-import "../libraries/utils/RevertMsgExtractor.sol";
 
 /// @title Operator
 abstract contract Operator is IOperator {

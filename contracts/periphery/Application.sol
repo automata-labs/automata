@@ -3,12 +3,13 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/IApplication.sol";
 
+import "../external/TransferHelper.sol";
+import "../external/Multicall.sol";
+import "../external/SelfPermit.sol";
+
 import "../interfaces/IAccumulator.sol";
 import "../interfaces/IOperator.sol";
 import "../interfaces/IToken.sol";
-import "../libraries/helpers/TransferHelper.sol";
-import "../libraries/utils/Multicall.sol";
-import "../libraries/utils/SelfPermit.sol";
 
 /// @title Application
 contract Application is IApplication, SelfPermit, Multicall {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "../math/Delta.sol";
+import "../../external/Delta.sol";
 
 library Pool {
     using Delta for uint128;

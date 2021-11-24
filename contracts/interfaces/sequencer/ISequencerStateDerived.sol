@@ -14,6 +14,9 @@ interface ISequencerStateDerived {
     /// @notice Returns the capacity left in tokens.
     function capacityMax() external view returns (uint256);
 
+    // @notice Returns the amount of votes at a block number.
+    function checkpoint(uint256 blockNumber) external view returns (uint256 votes);
+
     /// @notice Returns a deterministically computed the shard addresses.
     function compute(uint256 cursor) external view returns (address);
 }

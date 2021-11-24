@@ -7,7 +7,7 @@ import "@uniswap/v3-periphery/contracts/interfaces/IERC721Permit.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/external/IERC1271.sol";
 
 import "./BlockTimestamp.sol";
-import "../libraries/utils/ChainId.sol";
+import "./ChainId.sol";
 
 /// @title ERC721 with permit
 /// @notice Nonfungible tokens that support an approve via signature, i.e. permit

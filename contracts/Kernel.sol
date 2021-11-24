@@ -3,7 +3,8 @@ pragma solidity ^0.8.0;
 
 import "./interfaces/IKernel.sol";
 
-import "./libraries/access/AccessControl.sol";
+import "./external/AccessControl.sol";
+
 import "./libraries/data/Slot.sol";
 
 /// @title Kernel

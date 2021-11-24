@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "../data/Slot.sol";
-import "../../interfaces/IKernel.sol";
+import "./data/Slot.sol";
+import "../interfaces/IKernel.sol";
 
 library Shell {
     /// @notice Returns a slot as a struct.

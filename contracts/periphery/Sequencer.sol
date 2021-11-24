@@ -6,13 +6,13 @@ import "../interfaces/ISequencer.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@yield-protocol/utils-v2/contracts/token/IERC20.sol";
 import "@yield-protocol/utils-v2/contracts/token/IERC20Metadata.sol";
+import "../external/AccessControl.sol";
+import "../external/TransferHelper.sol";
 
 import "./Shard.sol";
 import "../interfaces/IShard.sol";
 import "../interfaces/external/IERC20CompLike.sol";
-import "../libraries/access/AccessControl.sol";
-import "../libraries/helpers/TransferHelper.sol";
-import "../libraries/math/Cursor.sol";
+import "../libraries/Cursor.sol";
 
 library Constants {
     uint256 internal constant MaxClones = uint256(2) ** uint256(8);
@@ -62,6 +62,22 @@ contract Sequencer is ISequencer, AccessControl {
     /// @inheritdoc ISequencerStateDerived
     function capacityMax() external view returns (uint256) {
         return (uint256(10) ** uint256(18) << _cardinality()) - uint256(10) ** uint256(18);
+    }
+
+    /// @inheritdoc ISequencerStateDerived
+    function checkpoint(uint256 blockNumber) external view returns (uint256 votes) {
+        for (uint256 i = 0; i < _cardinality(); i++) {
+            uint256 priorVotes =
+                IERC20CompLike(coin).getPriorVotes(shards[i], blockNumber);
+            uint256 capacity_ = (uint256(10) ** uint256(18) << i);
+
+            if (priorVotes < capacity_ || i == _cardinality() - 1) {
+                votes += priorVotes;
+                break;
+            } else {
+                votes += priorVotes;
+            }
+        }
     }
 
     /// @inheritdoc ISequencerStateDerived

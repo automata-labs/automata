@@ -5,10 +5,10 @@ import "../../interfaces/IToken.sol";
 
 import "@yield-protocol/utils-v2/contracts/token/ERC20Permit.sol";
 import "@yield-protocol/utils-v2/contracts/token/IERC20Metadata.sol";
+import "../../external/Cast.sol";
 
 import "../../interfaces/IKernel.sol";
-import "../../libraries/helpers/Shell.sol";
-import "../../libraries/math/Cast.sol";
+import "../../libraries/Shell.sol";
 
 /// @title VToken
 contract VToken is IToken, ERC20Permit {

@@ -3,14 +3,15 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/IAccumulator.sol";
 
-import "../abstracts/ERC721Permit.sol";
+import "../external/Cast.sol";
+import "../external/ERC721Permit.sol";
+import "../external/FixedPoint.sol";
+import "../external/FullMath.sol";
+
 import "../interfaces/IKernel.sol";
 import "../libraries/data/Pool.sol";
 import "../libraries/data/Stake.sol";
-import "../libraries/helpers/Shell.sol";
-import "../libraries/math/Cast.sol";
-import "../libraries/math/FixedPoint.sol";
-import "../libraries/math/FullMath.sol";
+import "../libraries/Shell.sol";
 
 /// @title Accumulator
 contract Accumulator is IAccumulator, ERC721Permit {

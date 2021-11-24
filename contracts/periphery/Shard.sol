@@ -4,11 +4,11 @@ pragma solidity ^0.8.0;
 import "../interfaces/IShard.sol";
 
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import "../external/AccessControl.sol";
+import "../external/TransferHelper.sol";
+import "../external/RevertMsgExtractor.sol";
 
 import "../interfaces/external/IERC20CompLike.sol";
-import "../libraries/access/AccessControl.sol";
-import "../libraries/helpers/TransferHelper.sol";
-import "../libraries/utils/RevertMsgExtractor.sol";
 
 /// @title Shard
 contract Shard is IShard, AccessControl, Initializable {
